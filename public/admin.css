@@ -208,3 +208,24 @@ body {
     margin: 0;
     padding-left: 20px;
 }
+
+.panel-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+}
+
+.stats-box {
+    margin-top: 20px;
+    padding: 15px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+}
+
+.stats-box ul {
+    margin: 0;
+    padding-left: 20px;
+}
