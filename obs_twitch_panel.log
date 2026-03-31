@@ -1,0 +1,31 @@
+Starte Backend Prozesse...
+Starte ngrok...
+Starte eventsub...
+Starte bot...
+Starte server...
+Lade twitch-credits/.env
+Starte Credits System...
+FEHLER: eventsub.js konnte nicht gestartet werden. Log: eventsub.log
+[dotenv@17.3.1] injecting env (0) from .env -- tip: 🛠️  run anywhere with `dotenvx run -- yourcommand`
+node:internal/modules/cjs/loader:1137
+  throw err;
+  ^
+
+Error: Cannot find module './handleRewardEvent'
+Require stack:
+- /home/fynn/TwitchOBSAdmin/eventsub.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1134:15)
+    at Module._load (node:internal/modules/cjs/loader:975:27)
+    at Module.require (node:internal/modules/cjs/loader:1225:19)
+    at require (node:internal/modules/helpers:177:18)
+    at Object.<anonymous> (/home/fynn/TwitchOBSAdmin/eventsub.js:7:27)
+    at Module._compile (node:internal/modules/cjs/loader:1356:14)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1414:10)
+    at Module.load (node:internal/modules/cjs/loader:1197:32)
+    at Module._load (node:internal/modules/cjs/loader:1013:12)
+    at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:128:12) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/home/fynn/TwitchOBSAdmin/eventsub.js' ]
+}
+
+Node.js v18.19.1

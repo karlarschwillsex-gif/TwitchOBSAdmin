@@ -1,0 +1,48 @@
+{
+  "rewards": {
+    "highlight_message": {
+      "type": "effect",
+      "action": "highlight",
+      "params": {
+        "color": "yellow"
+      }
+    },
+
+    "wow": {
+      "type": "sound",
+      "action": "play_sound",
+      "params": {
+        "file": "wow.mp3",
+        "volume": 0.8
+      }
+    },
+
+    "filter_pixelate": {
+      "type": "filter",
+      "action": "apply_filter",
+      "params": {
+        "filter": "pixelate",
+        "duration": 5000
+      }
+    },
+
+    "filter_invert": {
+      "type": "filter",
+      "action": "apply_filter",
+      "params": {
+        "filter": "invert",
+        "duration": 3000
+      }
+    },
+
+    "tts_message": {
+      "type": "tts",
+      "action": "speak",
+      "params": {
+        "voice": "Brian",
+        "speed": 1.0
+      }
+    }
+  }
+}
+

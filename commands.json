@@ -1,0 +1,24 @@
+[
+  {
+    "name": "Help",
+    "command": "+help",
+    "description": "Öffnet das Hilfe-Fenster mit allen verfügbaren Befehlen."
+  },
+  {
+    "name": "Duel",
+    "command": "+duel <Betrag> <User>",
+    "description": "Fordert einen User zu einem Duell heraus.",
+    "category": "Interaktion"
+  },
+  {
+    "name": "Gift",
+    "command": "+gift <User> <Betrag>",
+    "aliases": ["+give", "+spende"],
+    "description": "Schenkt einem User Fuchsdukaten."
+  },
+  {
+    "name": "Stats",
+    "command": "+stats",
+    "description": "Zeigt deine persönlichen Statistiken."
+  }
+]
