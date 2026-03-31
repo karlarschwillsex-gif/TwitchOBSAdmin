@@ -1,0 +1,96 @@
+<div class="econ-grid">
+
+  <!-- LINKE SPALTE -->
+  <div class="econ-col">
+
+    <!-- Startkapital -->
+    <div class="econ-section">
+      <div class="econ-title">Startkapital pro Neu‑User</div>
+
+      <div class="econ-row">
+        <label class="econ-label">Startkapital (Fuchsdukaten)</label>
+        <input type="number" id="startCapital" class="econ-input" min="0" value="0">
+      </div>
+
+      <div class="econ-info">
+        Wird nur bei der allerersten Nachricht eines Users<br>
+        vergeben – nie wieder, auch nicht bei Namenswechsel.
+      </div>
+    </div>
+
+    <!-- Watchtime -->
+    <div class="econ-section">
+      <div class="econ-title">Watchtime‑Multiplikator</div>
+
+      <div class="econ-row">
+        <label class="econ-label">Watchtime‑Multiplikator</label>
+        <input type="number" id="watchMultiplier" class="econ-input" step="0.1" min="0" value="1">
+      </div>
+
+      <div class="econ-row">
+        <label class="econ-label">Aktivierung nach Minuten</label>
+        <input type="number" id="watchActivateAfterMin" class="econ-input" min="0" value="0">
+      </div>
+
+      <div class="econ-row">
+        <label class="econ-label">Deaktivierung nach Stunden</label>
+        <input type="number" id="watchDeactivateAfterHours" class="econ-input" min="0" value="0">
+      </div>
+
+      <div class="econ-info">
+        Gilt für Normaluser und MOD. VIP hat eigenen<br>
+        Multiplikator, Admin erhält keine Fuchsdukaten.
+      </div>
+    </div>
+
+  </div>
+
+
+  <!-- RECHTE SPALTE -->
+  <div class="econ-col">
+
+    <!-- Kosten pro Chat -->
+    <div class="econ-section">
+      <div class="econ-title">Kosten pro Chat‑Nachricht</div>
+
+      <div class="econ-row">
+        <label class="econ-label">Normaluser</label>
+        <input type="number" id="costChatNormal" class="econ-input" min="0" value="1">
+      </div>
+
+      <div class="econ-row">
+        <label class="econ-label">MOD + VIP</label>
+        <input type="number" id="costChatModVip" class="econ-input" min="0" value="0">
+      </div>
+
+      <div class="econ-info">
+        Admin zahlt immer 0 Fuchsdukaten
+      </div>
+    </div>
+
+    <!-- VIP-Multiplikator -->
+    <div class="econ-section">
+      <div class="econ-title">VIP‑Multiplikator</div>
+
+      <div class="econ-row">
+        <label class="econ-label">VIP‑Multiplikator</label>
+        <input type="number" id="vipMultiplier" class="econ-input" step="0.1" min="0" value="1">
+      </div>
+
+      <div class="econ-info">
+        Für alle Fuchsdukaten‑Einnahmen von VIPs
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- SPEICHER-BUTTON ZENTRIERT -->
+<div class="econ-save-wrapper">
+  <button class="btn-save" id="saveEconomyBtn">Tabinhalt speichern</button>
+</div>
+
+<div id="status" style="margin-top: 10px; padding: 10px; border-radius: 5px; text-align: center;"></div>
+
+<script src="/economy.js"></script>

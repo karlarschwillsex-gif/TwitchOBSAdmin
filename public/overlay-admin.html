@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <div class="econ-section" style="text-align:center;">
+    <div class="econ-title">Oberlay Center<br><br></div>
+  <link rel="stylesheet" href="admin.css">
+</head>
+
+<body>
+
+<div class="status" id="status"></div>
+
+<div class="econ-col" style="max-width: 650px; margin: 0 auto; font-size: 0.9em;">
+
+  <!-- Neuen OBS-Filter hinzufügen -->
+  <div class="econ-section" style="text-align:center;">
+    <div class="econ-title">Neuen OBS‑Filter hinzufügen</div>
+
+    <div class="econ-row" style="justify-content:center;">
+      <label class="econ-label" style="width:150px;">Filtername</label>
+      <input type="text" id="obsFilterName" class="econ-input" style="width:200px;">
+    </div>
+
+    <div class="econ-row" style="justify-content:center;">
+      <label class="econ-label" style="width:150px;">Kosten</label>
+      <input type="number" id="newFilterCost" class="econ-input"
+             value="300" style="width:200px;">
+    </div>
+
+    <div class="econ-row" style="justify-content:center;">
+      <label class="econ-label" style="width:150px;">Dauer (Sek.)</label>
+      <input type="number" id="newFilterDuration" class="econ-input"
+             value="5" style="width:200px;">
+    </div>
+
+    <div class="econ-save-wrapper">
+      <button class="btn-save" id="addObsFilterBtn">Filter hinzufügen</button>
+    </div>
+  </div>
+
+  <!-- Camfilter verwalten -->
+  <div class="econ-section">
+    <div class="econ-title">Camfilter verwalten</div>
+
+    <table style="width:100%; border-collapse: collapse; margin-top:10px; font-size:0.9em;">
+      <thead>
+        <tr style="border-bottom:1px solid #444;">
+          <th style="padding:6px;">Name</th>
+          <th style="padding:6px;">Datei</th>
+          <th style="padding:6px;">Kosten</th>
+          <th style="padding:6px;">Dauer (s)</th>
+          <th style="padding:6px;">Befehl</th>
+          <th style="padding:6px;">Aktion</th>
+        </tr>
+      </thead>
+      <tbody id="camFilterBody"></tbody>
+    </table>
+
+    <div class="econ-save-wrapper" style="margin-top:20px;">
+      <button class="btn-save" id="saveCamFiltersBtn">Änderungen speichern</button>
+    </div>
+  </div>
+
+  <!-- Banner verwalten -->
+  <div class="econ-section" style="text-align:center;">
+    <div class="econ-title">Banner verwalten</div>
+
+    <div class="econ-row" style="justify-content:center;">
+      <label class="econ-label" style="width:150px;">Aktuelles Banner</label>
+      <img id="bannerPreview" src="/banner/banner.png"
+           style="width:200px; border:1px solid #333; border-radius:6px;">
+    </div>
+
+    <div class="econ-row" style="justify-content:center;">
+      <label class="econ-label" style="width:150px;">Neues Banner</label>
+      <input type="file" id="bannerUpload" class="econ-input" style="width:200px;">
+    </div>
+
+    <div class="econ-save-wrapper">
+      <button class="btn-save" id="saveBannerBtn">Banner speichern</button>
+    </div>
+
+    <div class="econ-save-wrapper">
+      <button class="btn-save" id="deleteBannerBtn" style="background:#b33;">Banner löschen</button>
+    </div>
+  </div>
+
+</div>
+
+<script src="overlay-admin.js"></script>
+</body>
+</html>
