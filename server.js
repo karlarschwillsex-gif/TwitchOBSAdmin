@@ -9,7 +9,7 @@ const duels = require('./backend/duels');
 const { getVirtualCamFilters } = require('./backend/obs-connection');
 
 // EventSub (ESM import)
-const { default: eventsubRouter, registerEventSubs } = require('./backend/eventsub.js');
+const { router: eventsubRouter, registerEventSubs } = require('./backend/eventsub.js');
 
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
