@@ -1,148 +1,93 @@
-const els = {
-  status: document.getElementById("status"),
+document.addEventListener("DOMContentLoaded", () => {
+    const apiUrl = "/api/admin/economy";
 
-  costChatNormal: document.getElementById("costChatNormal"),
-  costChatModVip: document.getElementById("costChatModVip"),
+    const fields = {
+        startCapital: document.getElementById("startCapital"),
+        watchMultiplier: document.getElementById("watchMultiplier"),
+        watchActivateAfterMin: document.getElementById("watchActivateAfterMin"),
+        watchDeactivateAfterHours: document.getElementById("watchDeactivateAfterHours"),
+        costChatNormal: document.getElementById("costChatNormal"),
+        costChatModVip: document.getElementById("costChatModVip"),
+        vipMultiplier: document.getElementById("vipMultiplier")
+    };
 
-  vipMultiplier: document.getElementById("vipMultiplier"),
+    const statsBox = document.getElementById("economyStats");
 
-  watchMultiplier: document.getElementById("watchMultiplier"),
-  watchActivateAfterMin: document.getElementById("watchActivateAfterMin"),
-  watchDeactivateAfterHours: document.getElementById("watchDeactivateAfterHours"),
+    // -----------------------------
+    // Daten laden
+    // -----------------------------
+    async function loadEconomy() {
+        try {
+            const res = await fetch(apiUrl);
+            const data = await res.json();
 
-  startCapital: document.getElementById("startCapital"),
+            // Felder befüllen
+            fields.startCapital.value = data.startCapital ?? 0;
+            fields.watchMultiplier.value = data.watchMultiplier ?? 1;
+            fields.watchActivateAfterMin.value = data.watchActivateAfterMin ?? 0;
+            fields.watchDeactivateAfterHours.value = data.watchDeactivateAfterHours ?? 0;
+            fields.costChatNormal.value = data.costChatNormal ?? 1;
+            fields.costChatModVip.value = data.costChatModVip ?? 0;
+            fields.vipMultiplier.value = data.vipMultiplier ?? 1;
 
-  saveBtn: document.getElementById("saveEconomyBtn"),
-};
+            // Stats anzeigen
+            renderStats(data);
 
-function setStatus(msg, isError = false) {
-  // Kleiner Check, falls das Element im HTML fehlt
-  if (!els.status) {
-    console.log("Status-Update:", msg);
-    return;
-  }
-  els.status.textContent = msg || "";
-  els.status.classList.toggle("error", !!isError);
-}
-
-/* -----------------------------------------
-   ECONOMY LADEN
-------------------------------------------*/
-
-async function loadEconomy() {
-  setStatus("Lade Economy-Einstellungen…");
-
-  try {
-    const res = await fetch("/api/admin/economy");
-
-    if (!res.ok) {
-      setStatus("Fehler beim Laden: " + res.statusText, true);
-      return;
+        } catch (err) {
+            console.error("Fehler beim Laden der Economy:", err);
+        }
     }
 
-    const cfg = await res.json();
+    // -----------------------------
+    // Stats‑Box aktualisieren
+    // -----------------------------
+    function renderStats(data) {
+        statsBox.innerHTML = `
+            <h3>Aktuell gespeicherte Economy‑Daten</h3>
+            <ul>
+                <li><strong>Startkapital:</strong> ${data.startCapital}</li>
+                <li><strong>Watchtime‑Multiplikator:</strong> ${data.watchMultiplier}</li>
+                <li><strong>Aktivierung nach Minuten:</strong> ${data.watchActivateAfterMin}</li>
+                <li><strong>Deaktivierung nach Stunden:</strong> ${data.watchDeactivateAfterHours}</li>
+                <li><strong>Kosten Normaluser:</strong> ${data.costChatNormal}</li>
+                <li><strong>Kosten Mod/VIP:</strong> ${data.costChatModVip}</li>
+                <li><strong>VIP‑Multiplikator:</strong> ${data.vipMultiplier}</li>
+            </ul>
+        `;
+    }
 
-    // Felder setzen (mit Fallback auf Standardwerte)
-    els.costChatNormal.value = cfg.costChatNormal ?? 0;
-    els.costChatModVip.value = cfg.costChatModVip ?? 0;
+    // -----------------------------
+    // Speichern
+    // -----------------------------
+    document.getElementById("saveEconomyBtn").addEventListener("click", async () => {
+        const payload = {
+            startCapital: Number(fields.startCapital.value),
+            watchMultiplier: Number(fields.watchMultiplier.value),
+            watchActivateAfterMin: Number(fields.watchActivateAfterMin.value),
+            watchDeactivateAfterHours: Number(fields.watchDeactivateAfterHours.value),
+            costChatNormal: Number(fields.costChatNormal.value),
+            costChatModVip: Number(fields.costChatModVip.value),
+            vipMultiplier: Number(fields.vipMultiplier.value)
+        };
 
-    els.vipMultiplier.value = cfg.vipMultiplier ?? 1;
+        try {
+            const res = await fetch(apiUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
 
-    els.watchMultiplier.value = cfg.watchMultiplier ?? 1;
-    els.watchActivateAfterMin.value = cfg.watchActivateAfterMin ?? 0;
-    els.watchDeactivateAfterHours.value = cfg.watchDeactivateAfterHours ?? 0;
+            const result = await res.json();
 
-    els.startCapital.value = cfg.startCapital ?? 0;
-
-    setStatus("Economy-Einstellungen geladen.");
-  } catch (err) {
-    console.error(err);
-    setStatus("Economy-Einstellungen konnten nicht geladen werden.", true);
-  }
-}
-
-/* -----------------------------------------
-   ECONOMY SPEICHERN
-------------------------------------------*/
-
-async function saveEconomy(event) {
-  // WICHTIG: Stoppt das Neuladen der Seite!
-  if (event) event.preventDefault();
-
-  const payload = {
-    costChatNormal: Number(els.costChatNormal.value || 0),
-    costChatModVip: Number(els.costChatModVip.value || 0),
-
-    vipMultiplier: Number(els.vipMultiplier.value || 1),
-
-    watchMultiplier: Number(els.watchMultiplier.value || 1),
-    watchActivateAfterMin: Number(els.watchActivateAfterMin.value || 0),
-    watchDeactivateAfterHours: Number(els.watchDeactivateAfterHours.value || 0),
-
-    startCapital: Number(els.startCapital.value || 0),
-  };
-
-  // Validierung
-  if (payload.costChatNormal < 0 || payload.costChatModVip < 0) {
-    return setStatus("Chat-Kosten dürfen nicht negativ sein.", true);
-  }
-  if (payload.vipMultiplier < 0) {
-    return setStatus("VIP-Multiplikator darf nicht negativ sein.", true);
-  }
-  if (payload.watchMultiplier < 0) {
-    return setStatus("Watchtime-Multiplikator darf nicht negativ sein.", true);
-  }
-  if (payload.startCapital < 0) {
-    return setStatus("Startkapital darf nicht negativ sein.", true);
-  }
-
-  setStatus("Speichere Economy-Einstellungen…");
-
-  try {
-    const res = await fetch("/api/admin/economy", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
+            if (result.ok) {
+                renderStats(payload);
+            } else {
+                console.error("Speichern fehlgeschlagen:", result);
+            }
+        } catch (err) {
+            console.error("Fehler beim Speichern:", err);
+        }
     });
 
-    if (!res.ok) {
-      setStatus("Fehler beim Speichern: " + res.statusText, true);
-      return;
-    }
-
-    const json = await res.json();
-
-    // Hier prüfen wir die Antwort vom Server
-    if (json.ok === true) {
-      setStatus("Economy-Einstellungen gespeichert.");
-    } else {
-      setStatus("Fehler beim Speichern in die Datei.", true);
-    }
-  } catch (err) {
-    console.error("Save-Error:", err);
-    setStatus("Fehler beim Speichern der Economy-Einstellungen.", true);
-  }
-}
-
-/* -----------------------------------------
-   INIT
-------------------------------------------*/
-
-function initEconomy() {
-  if (els.saveBtn) {
-    els.saveBtn.addEventListener("click", saveEconomy);
-    console.log("Economy-Script: Save-Button bereit.");
-  } else {
-    console.error("Economy-Script: Save-Button nicht gefunden!");
-  }
-  loadEconomy();
-}
-
-// Starten, sobald das DOM bereit ist
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initEconomy);
-} else {
-  initEconomy();
-}
+    loadEconomy();
+});
