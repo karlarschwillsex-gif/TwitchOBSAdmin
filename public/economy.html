@@ -1,96 +1,62 @@
-<div class="econ-grid">
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Economy – Admin Panel</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+<body>
 
-  <!-- LINKE SPALTE -->
-  <div class="econ-col">
+    <h2>Economy‑Einstellungen</h2>
 
-    <!-- Startkapital -->
-    <div class="econ-section">
-      <div class="econ-title">Startkapital pro Neu‑User</div>
-
-      <div class="econ-row">
-        <label class="econ-label">Startkapital (Fuchsdukaten)</label>
-        <input type="number" id="startCapital" class="econ-input" min="0" value="0">
-      </div>
-
-      <div class="econ-info">
-        Wird nur bei der allerersten Nachricht eines Users<br>
-        vergeben – nie wieder, auch nicht bei Namenswechsel.
-      </div>
+    <!-- STARTKAPITAL -->
+    <div class="panel-section">
+        <label for="startCapital">Startkapital (Fuchsdakaten)</label>
+        <input type="number" id="startCapital" min="0" value="0">
+        <p class="hint">Wird nur bei der allerersten Nachricht eines Users vergeben – nie wieder, auch nicht bei Namenswechsel.</p>
     </div>
 
-    <!-- Watchtime -->
-    <div class="econ-section">
-      <div class="econ-title">Watchtime‑Multiplikator</div>
+    <!-- WATCHTIME -->
+    <div class="panel-section">
+        <label for="watchMultiplier">Watchtime‑Multiplikator</label>
+        <input type="number" id="watchMultiplier" min="0" step="0.1" value="1">
 
-      <div class="econ-row">
-        <label class="econ-label">Watchtime‑Multiplikator</label>
-        <input type="number" id="watchMultiplier" class="econ-input" step="0.1" min="0" value="1">
-      </div>
+        <label for="watchActivateAfterMin">Aktivierung nach Minuten</label>
+        <input type="number" id="watchActivateAfterMin" min="0" value="0">
 
-      <div class="econ-row">
-        <label class="econ-label">Aktivierung nach Minuten</label>
-        <input type="number" id="watchActivateAfterMin" class="econ-input" min="0" value="0">
-      </div>
+        <label for="watchDeactivateAfterHours">Deaktivierung nach Stunden</label>
+        <input type="number" id="watchDeactivateAfterHours" min="0" value="0">
 
-      <div class="econ-row">
-        <label class="econ-label">Deaktivierung nach Stunden</label>
-        <input type="number" id="watchDeactivateAfterHours" class="econ-input" min="0" value="0">
-      </div>
-
-      <div class="econ-info">
-        Gilt für Normaluser und MOD. VIP hat eigenen<br>
-        Multiplikator, Admin erhält keine Fuchsdukaten.
-      </div>
+        <p class="hint">Gilt für Normaluser und MOD. VIP hat eigenen Multiplikator, Admin erhält keine Fuchsdakaten.</p>
     </div>
 
-  </div>
+    <!-- CHAT‑KOSTEN -->
+    <div class="panel-section">
+        <label for="costChatNormal">Kosten pro Chat‑Nachricht (Normaluser)</label>
+        <input type="number" id="costChatNormal" min="0" value="1">
 
+        <label for="costChatModVip">Kosten pro Chat‑Nachricht (MOD + VIP)</label>
+        <input type="number" id="costChatModVip" min="0" value="0">
 
-  <!-- RECHTE SPALTE -->
-  <div class="econ-col">
-
-    <!-- Kosten pro Chat -->
-    <div class="econ-section">
-      <div class="econ-title">Kosten pro Chat‑Nachricht</div>
-
-      <div class="econ-row">
-        <label class="econ-label">Normaluser</label>
-        <input type="number" id="costChatNormal" class="econ-input" min="0" value="1">
-      </div>
-
-      <div class="econ-row">
-        <label class="econ-label">MOD + VIP</label>
-        <input type="number" id="costChatModVip" class="econ-input" min="0" value="0">
-      </div>
-
-      <div class="econ-info">
-        Admin zahlt immer 0 Fuchsdukaten
-      </div>
+        <p class="hint">Admin zahlt immer 0 Fuchsdakaten.</p>
     </div>
 
-    <!-- VIP-Multiplikator -->
-    <div class="econ-section">
-      <div class="econ-title">VIP‑Multiplikator</div>
-
-      <div class="econ-row">
-        <label class="econ-label">VIP‑Multiplikator</label>
-        <input type="number" id="vipMultiplier" class="econ-input" step="0.1" min="0" value="1">
-      </div>
-
-      <div class="econ-info">
-        Für alle Fuchsdukaten‑Einnahmen von VIPs
-      </div>
+    <!-- VIP MULTIPLIKATOR -->
+    <div class="panel-section">
+        <label for="vipMultiplier">VIP‑Multiplikator</label>
+        <input type="number" id="vipMultiplier" min="0" step="0.1" value="1">
+        <p class="hint">Für alle Fuchsdakaten‑Einnahmen von VIPs.</p>
     </div>
 
-  </div>
+    <!-- SPEICHERN -->
+    <button id="saveEconomyBtn" class="save-button">Tabinhalt speichern</button>
 
-</div>
+    <!-- LIVE‑STATS -->
+    <div id="economyStats" class="stats-box">
+        <h3>Aktuell gespeicherte Economy‑Daten</h3>
+        <p>Wird geladen…</p>
+    </div>
 
-<!-- SPEICHER-BUTTON ZENTRIERT -->
-<div class="econ-save-wrapper">
-  <button class="btn-save" id="saveEconomyBtn">Tabinhalt speichern</button>
-</div>
-
-<div id="status" style="margin-top: 10px; padding: 10px; border-radius: 5px; text-align: center;"></div>
-
-<script src="/economy.js"></script>
+    <script src="economy.js"></script>
+</body>
+</html>
