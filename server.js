@@ -8,13 +8,29 @@ const fetch = require('node-fetch');
 const duels = require('./backend/duels');
 const { getVirtualCamFilters } = require('./backend/obs-connection');
 
+// EventSub (ESM import)
+const { default: eventsubRouter, registerEventSubs } = require('./backend/eventsub.js');
+
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const ROOT = __dirname;
 
-/**
- * CONFIG PATHS
- */
+/* ============================================================
+   RAW BODY FÜR EVENTSUB (MUSS GANZ OBEN SEIN!)
+   ============================================================ */
+app.use('/eventsub', express.raw({ type: 'application/json' }));
+
+/* ============================================================
+   MIDDLEWARE
+   ============================================================ */
+app.use(morgan('dev'));
+app.use(express.json({ limit: '5mb' }));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(ROOT, 'public')));
+
+/* ============================================================
+   CONFIG PATHS
+   ============================================================ */
 const CONFIG = {
   coins: path.join(ROOT, 'config.json'),
   soundSettings: path.join(ROOT, 'sound_settings.json'),
@@ -25,7 +41,9 @@ const CONFIG = {
 const CAMFILTER_FILE = path.join(ROOT, 'data', 'camfilters.json');
 const ECONOMY_FILE = path.join(ROOT, 'data', 'economy.json');
 
-// Ensure directories exist
+/* ============================================================
+   DIRECTORY SETUP
+   ============================================================ */
 try {
   if (!fs.existsSync(path.join(ROOT, 'public'))) fs.mkdirSync(path.join(ROOT, 'public'), { recursive: true });
   if (!fs.existsSync(CONFIG.bannerFolder)) fs.mkdirSync(CONFIG.bannerFolder, { recursive: true });
@@ -34,17 +52,9 @@ try {
   console.error('[server] Fehler beim Anlegen von Verzeichnissen', err);
 }
 
-/**
- * Middleware
- */
-app.use(morgan('dev'));
-app.use(express.json({ limit: '5mb' }));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(ROOT, 'public')));
-
-/**
- * Camfilter JSON helpers
- */
+/* ============================================================
+   CAMFILTER JSON HELPERS
+   ============================================================ */
 function loadCamfilterSettings() {
   try {
     if (!fs.existsSync(CAMFILTER_FILE)) {
@@ -65,9 +75,9 @@ function saveCamfilterSettings(filters) {
   }
 }
 
-/**
- * ECONOMY SETTINGS
- */
+/* ============================================================
+   ECONOMY JSON HELPERS
+   ============================================================ */
 function loadEconomy() {
   try {
     if (!fs.existsSync(ECONOMY_FILE)) {
@@ -98,9 +108,9 @@ function saveEconomy(cfg) {
   }
 }
 
-/**
- * Basic endpoints
- */
+/* ============================================================
+   BASIC ENDPOINTS
+   ============================================================ */
 app.get('/', (req, res) => {
   const adminHtml = path.join(ROOT, 'public', 'admin.html');
   if (fs.existsSync(adminHtml)) return res.sendFile(adminHtml);
@@ -118,46 +128,19 @@ app.get('/_status', (req, res) => {
   });
 });
 
-/**
- * EventSub callback endpoint
- */
-app.post('/eventsub', async (req, res) => {
-  try {
-    console.log('[eventsub] Payload empfangen:', {
-      type: req.body?.subscription?.type || 'unknown',
-      id: req.body?.subscription?.id || null
-    });
+/* ============================================================
+   EVENTSUB ROUTER (NEU)
+   ============================================================ */
+app.use("/", eventsubRouter);
 
-    const forwardTo = process.env.EVENTSUB_FORWARD || process.env.TWITCH_EVENTSUB_FORWARD;
-    if (forwardTo) {
-      try {
-        await fetch(forwardTo, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(req.body),
-          timeout: 5000
-        });
-        console.log('[eventsub] Weitergeleitet an', forwardTo);
-      } catch (fwdErr) {
-        console.warn('[eventsub] Weiterleitung fehlgeschlagen', fwdErr.message || fwdErr);
-      }
-    }
-
-    res.status(200).send('ok');
-  } catch (err) {
-    console.error('[eventsub] Fehler beim Verarbeiten', err);
-    res.status(500).send('error');
-  }
-});
-
-/**
- * Duels
- */
+/* ============================================================
+   DUELS
+   ============================================================ */
 app.use('/api/admin/duels', duels.router);
 
-/**
- * BANNER
- */
+/* ============================================================
+   BANNER
+   ============================================================ */
 app.get('/api/admin/banner', (req, res) => {
   const bannerPath = path.join(CONFIG.bannerFolder, 'banner.png');
   res.json({ exists: fs.existsSync(bannerPath) });
@@ -176,9 +159,6 @@ app.post('/api/admin/banner', (req, res) => {
   }
 });
 
-/**
- * BANNER DELETE (Fortsetzung)
- */
 app.delete('/api/admin/banner', (req, res) => {
   try {
     const bannerPath = path.join(CONFIG.bannerFolder, 'banner.png');
@@ -190,9 +170,9 @@ app.delete('/api/admin/banner', (req, res) => {
   }
 });
 
-/**
- * OBS Shaderfilter aus "Virtual Cam"
- */
+/* ============================================================
+   OBS FILTER
+   ============================================================ */
 app.get('/api/admin/obs-filters', async (req, res) => {
   try {
     const filters = await getVirtualCamFilters();
@@ -203,9 +183,9 @@ app.get('/api/admin/obs-filters', async (req, res) => {
   }
 });
 
-/**
- * Camfilter Settings (Liste + Add)
- */
+/* ============================================================
+   CAMFILTER SETTINGS
+   ============================================================ */
 app.get('/api/admin/camfilter-settings', (req, res) => {
   res.json(loadCamfilterSettings());
 });
@@ -216,7 +196,6 @@ app.post('/api/admin/camfilter-settings', (req, res) => {
   res.json({ ok: true });
 });
 
-// neuen Filter hinzufügen (manuell eingegebener Name)
 app.post('/api/admin/camfilter-settings/add', (req, res) => {
   const { filterName, cost, duration } = req.body || {};
 
@@ -238,9 +217,9 @@ app.post('/api/admin/camfilter-settings/add', (req, res) => {
   res.json({ ok: true, filter });
 });
 
-/**
- * CONFIG (Coins, Sound, Alias)
- */
+/* ============================================================
+   CONFIG (Coins, Sound, Alias)
+   ============================================================ */
 function safeReadJson(filePath, defaultObj = {}) {
   try {
     if (!fs.existsSync(filePath)) {
@@ -290,9 +269,9 @@ app.post('/api/admin/sound-alias', (req, res) => {
   res.json({ ok: true });
 });
 
-/**
- * ECONOMY API
- */
+/* ============================================================
+   ECONOMY API
+   ============================================================ */
 app.get('/api/admin/economy', (req, res) => {
   res.json(loadEconomy());
 });
@@ -302,21 +281,27 @@ app.post('/api/admin/economy', (req, res) => {
   res.json({ ok });
 });
 
-/**
- * Global error handler
- */
+/* ============================================================
+   ERROR HANDLER
+   ============================================================ */
 app.use((err, req, res, next) => {
   console.error('[server] Fehler:', err && err.stack ? err.stack : err);
   res.status(500).json({ error: 'Internal Server Error' });
 });
 
-/**
- * Graceful shutdown
- */
-const server = app.listen(PORT, () => {
+/* ============================================================
+   SERVER START
+   ============================================================ */
+const server = app.listen(PORT, async () => {
   console.log(`Admin-Backend läuft auf http://localhost:${PORT}`);
+
+  // EventSub registrieren
+  await registerEventSubs();
 });
 
+/* ============================================================
+   SHUTDOWN
+   ============================================================ */
 function shutdown() {
   console.log('[server] Beende Server...');
   server.close(() => {
@@ -328,12 +313,6 @@ function shutdown() {
     process.exit(1);
   }, 5000).unref();
 }
-
-import eventsubRouter, { registerEventSubs } from "./eventsub.js";
-
-app.use("/", eventsubRouter);
-registerEventSubs();
-
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
