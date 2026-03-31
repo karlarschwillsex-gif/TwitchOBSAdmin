@@ -329,5 +329,11 @@ function shutdown() {
   }, 5000).unref();
 }
 
+import eventsubRouter, { registerEventSubs } from "./eventsub.js";
+
+app.use("/", eventsubRouter);
+registerEventSubs();
+
+
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
