@@ -9,49 +9,93 @@
 
     <h2>Economy‑Einstellungen</h2>
 
-    <!-- STARTKAPITAL -->
-    <div class="panel-section">
-        <label for="startCapital">Startkapital (Fuchsdakaten)</label>
-        <input type="number" id="startCapital" min="0" value="0">
-        <p class="hint">Wird nur bei der allerersten Nachricht eines Users vergeben – nie wieder, auch nicht bei Namenswechsel.</p>
+    <div class="econ-grid">
+
+        <!-- Linke Spalte -->
+        <div class="econ-col">
+
+            <div class="econ-section">
+                <div class="econ-title">Startkapital (Fuchsdakaten)</div>
+
+                <div class="econ-row">
+                    <label class="econ-label" for="startCapital">Startkapital</label>
+                    <input type="number" id="startCapital" class="econ-input" min="0" value="0">
+                </div>
+
+                <div class="econ-info">
+                    Wird nur bei der allerersten Nachricht eines Users vergeben – nie wieder, auch nicht bei Namenswechsel.
+                </div>
+            </div>
+
+            <div class="econ-section">
+                <div class="econ-title">Chat‑Kosten</div>
+
+                <div class="econ-row">
+                    <label class="econ-label" for="costChatNormal">Kosten Normaluser</label>
+                    <input type="number" id="costChatNormal" class="econ-input" min="0" value="1">
+                </div>
+
+                <div class="econ-row">
+                    <label class="econ-label" for="costChatModVip">Kosten MOD + VIP</label>
+                    <input type="number" id="costChatModVip" class="econ-input" min="0" value="0">
+                </div>
+
+                <div class="econ-info">
+                    Admin zahlt immer 0 Fuchsdakaten.
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Rechte Spalte -->
+        <div class="econ-col">
+
+            <div class="econ-section">
+                <div class="econ-title">Watchtime‑Einstellungen</div>
+
+                <div class="econ-row">
+                    <label class="econ-label" for="watchMultiplier">Multiplikator</label>
+                    <input type="number" id="watchMultiplier" class="econ-input" min="0" step="0.1" value="1">
+                </div>
+
+                <div class="econ-row">
+                    <label class="econ-label" for="watchActivateAfterMin">Aktivierung nach Min</label>
+                    <input type="number" id="watchActivateAfterMin" class="econ-input" min="0" value="0">
+                </div>
+
+                <div class="econ-row">
+                    <label class="econ-label" for="watchDeactivateAfterHours">Deaktivierung nach Std</label>
+                    <input type="number" id="watchDeactivateAfterHours" class="econ-input" min="0" value="0">
+                </div>
+
+                <div class="econ-info">
+                    Gilt für Normaluser und MOD. VIP hat eigenen Multiplikator, Admin erhält keine Fuchsdakaten.
+                </div>
+            </div>
+
+            <div class="econ-section">
+                <div class="econ-title">VIP‑Multiplikator</div>
+
+                <div class="econ-row">
+                    <label class="econ-label" for="vipMultiplier">VIP‑Multiplikator</label>
+                    <input type="number" id="vipMultiplier" class="econ-input" min="0" step="0.1" value="1">
+                </div>
+
+                <div class="econ-info">
+                    Für alle Fuchsdakaten‑Einnahmen von VIPs.
+                </div>
+            </div>
+
+        </div>
+
     </div>
 
-    <!-- WATCHTIME -->
-    <div class="panel-section">
-        <label for="watchMultiplier">Watchtime‑Multiplikator</label>
-        <input type="number" id="watchMultiplier" min="0" step="0.1" value="1">
-
-        <label for="watchActivateAfterMin">Aktivierung nach Minuten</label>
-        <input type="number" id="watchActivateAfterMin" min="0" value="0">
-
-        <label for="watchDeactivateAfterHours">Deaktivierung nach Stunden</label>
-        <input type="number" id="watchDeactivateAfterHours" min="0" value="0">
-
-        <p class="hint">Gilt für Normaluser und MOD. VIP hat eigenen Multiplikator, Admin erhält keine Fuchsdakaten.</p>
+    <!-- Save Button -->
+    <div class="econ-save-wrapper">
+        <button id="saveEconomyBtn" class="btn-save">Tabinhalt speichern</button>
     </div>
 
-    <!-- CHAT‑KOSTEN -->
-    <div class="panel-section">
-        <label for="costChatNormal">Kosten pro Chat‑Nachricht (Normaluser)</label>
-        <input type="number" id="costChatNormal" min="0" value="1">
-
-        <label for="costChatModVip">Kosten pro Chat‑Nachricht (MOD + VIP)</label>
-        <input type="number" id="costChatModVip" min="0" value="0">
-
-        <p class="hint">Admin zahlt immer 0 Fuchsdakaten.</p>
-    </div>
-
-    <!-- VIP MULTIPLIKATOR -->
-    <div class="panel-section">
-        <label for="vipMultiplier">VIP‑Multiplikator</label>
-        <input type="number" id="vipMultiplier" min="0" step="0.1" value="1">
-        <p class="hint">Für alle Fuchsdakaten‑Einnahmen von VIPs.</p>
-    </div>
-
-    <!-- SPEICHERN -->
-    <button id="saveEconomyBtn" class="save-button">Tabinhalt speichern</button>
-
-    <!-- LIVE‑STATS -->
+    <!-- Stats Box -->
     <div id="economyStats" class="stats-box">
         <h3>Aktuell gespeicherte Economy‑Daten</h3>
         <p>Wird geladen…</p>
