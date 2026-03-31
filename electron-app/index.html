@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>OBS & Twitch Panel</title>
+
+<style>
+  @font-face {
+    font-family: "MagnetoB";
+    src: url("MAGNETOB.TTF") format("truetype");
+  }
+
+  body {
+    margin: 0;
+    background: #2a0040;
+    color: #FF4400;
+    font-family: Arial, sans-serif;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+  }
+
+  .wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .logo {
+    width: 300px;
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeIn 1s ease forwards 1s, breathe 3s ease-in-out infinite 2s;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  @keyframes breathe {
+    0%   { transform: scale(1); filter: drop-shadow(0 0 5px #ff8800); }
+    50%  { transform: scale(1.05); filter: drop-shadow(0 0 25px #ff4400); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 5px #ff8800); }
+  }
+
+  .maintext {
+    font-family: "MagnetoB", sans-serif;
+    font-size: 24px;
+    line-height: 1.3;
+    color: #FF4400;
+    margin-bottom: 30px;
+  }
+
+  .status {
+    font-size: 12px;
+    color: #cccccc;
+    opacity: 0.8;
+    margin-bottom: 30px;
+    font-family: Arial, sans-serif;
+  }
+
+  button {
+    padding: 10px 22px;
+    font-size: 16px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: #6a00ff;
+    color: white;
+  }
+
+  button:hover {
+    background: #5200cc;
+  }
+</style>
+
+<script>
+  window.onload = () => {
+    const statusText = document.getElementById("statusText");
+    const btn = document.getElementById("startBtn");
+    const logo = document.querySelector(".logo");
+
+    btn.style.display = "none";
+
+    window.electronAPI.on("backend-ready", () => {
+      statusText.style.display = "none";
+      btn.style.display = "inline-block";
+      logo.style.animation = "fadeIn 1s ease forwards 1s";
+    });
+  };
+
+  function sofortStart() {
+    window.electronAPI.send("open-main-window");
+  }
+</script>
+
+</head>
+
+<body>
+
+  <div class="wrapper">
+
+    <img src="LOGO.png" class="logo">
+
+    <div class="maintext">
+      Admin‑Panel<br>
+      für Twitch & OBS<br>
+      unter Linux Mint<br>
+      created by<br>
+      <b>Phynnias (Fynn) Logan</b>
+    </div>
+
+    <div id="statusText" class="status">
+      Bitte warte noch bis das<br>
+      Admin‑Panel fertig ist.
+    </div>
+
+    <button id="startBtn" onclick="sofortStart()">Weiter</button>
+
+  </div>
+
+</body>
+</html>
+
