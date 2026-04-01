@@ -28,11 +28,11 @@ function initEconomy() {
             fields.factorMod.value         = data.factorMod         ?? 1.5;
             fields.factorVip.value         = data.factorVip         ?? 1.5;
             fields.factorSub.value         = data.factorSub         ?? 2.0;
-            fields.bitFactor1.value        = data.bitFactor1        ?? 1;
-            fields.bitFactor2.value        = data.bitFactor2        ?? 2;
-            fields.bitFactor3.value        = data.bitFactor3        ?? 3;
-            fields.bitFactor4.value        = data.bitFactor4        ?? 4;
-            fields.bitFactor5.value        = data.bitFactor5        ?? 5;
+            fields.bitFactor1.value        = data.bitFactor1        ?? 1.0;
+            fields.bitFactor2.value        = data.bitFactor2        ?? 1.5;
+            fields.bitFactor3.value        = data.bitFactor3        ?? 2.0;
+            fields.bitFactor4.value        = data.bitFactor4        ?? 2.5;
+            fields.bitFactor5.value        = data.bitFactor5        ?? 3.0;
 
             renderStats(data);
         } catch (err) {
@@ -51,11 +51,12 @@ function initEconomy() {
                 <li><strong>VIP-Faktor:</strong> ×${data.factorVip ?? 1.5}</li>
                 <li><strong>SUB-Faktor:</strong> ×${data.factorSub ?? 2.0}</li>
                 <li><strong>Bit-Staffeln:</strong>
-                    ab 10 ×${data.bitFactor1 ?? 1} /
-                    ab 100 ×${data.bitFactor2 ?? 2} /
-                    ab 1.000 ×${data.bitFactor3 ?? 3} /
-                    ab 10.000 ×${data.bitFactor4 ?? 4} /
-                    ab 100.000 ×${data.bitFactor5 ?? 5}
+                    &lt;10 ×1.0 (fest) /
+                    ab 10 ×${data.bitFactor1 ?? 1.0} /
+                    ab 100 ×${data.bitFactor2 ?? 1.5} /
+                    ab 1.000 ×${data.bitFactor3 ?? 2.0} /
+                    ab 10.000 ×${data.bitFactor4 ?? 2.5} /
+                    ab 100.000 ×${data.bitFactor5 ?? 3.0}
                 </li>
                 <li><strong>Admin:</strong> ∞ F$ 🦊</li>
             </ul>
