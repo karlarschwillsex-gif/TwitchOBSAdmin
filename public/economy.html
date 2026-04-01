@@ -4,34 +4,47 @@
     <div class="econ-col">
 
         <div class="econ-section">
-            <div class="econ-title">Startkapital (Fuchsdukaten)</div>
+            <div class="econ-title">F$ Grundeinstellungen</div>
 
             <div class="econ-row">
-                <label class="econ-label" for="startCapital">Startkapital</label>
-                <input type="number" id="startCapital" class="econ-input" min="0" value="0">
+                <label class="econ-label" for="basePerMessage">F$ pro Nachricht</label>
+                <input type="number" id="basePerMessage" class="econ-input" min="0" step="1" value="1">
             </div>
+            <div class="econ-info">Jeder Chatter bekommt diesen Betrag pro Nachricht als Basis.</div>
 
-            <div class="econ-info">
-                Wird nur bei der allerersten Nachricht eines Users vergeben – nie wieder, auch nicht bei Namenswechsel.
+            <div class="econ-row">
+                <label class="econ-label" for="cooldownSeconds">Cooldown (Sek.)</label>
+                <input type="number" id="cooldownSeconds" class="econ-input" min="1" step="1" value="5">
             </div>
+            <div class="econ-info">Mindestabstand zwischen zwei F$-Belohnungen pro User.</div>
+
+            <div class="econ-row">
+                <label class="econ-label" for="spamCheckMessages">Spam-Schutz (Nachrichten)</label>
+                <input type="number" id="spamCheckMessages" class="econ-input" min="1" step="1" value="3">
+            </div>
+            <div class="econ-info">Letzte X Nachrichten werden verglichen — gleiche Nachricht gibt keine F$.</div>
         </div>
 
         <div class="econ-section">
-            <div class="econ-title">Chat-Kosten</div>
+            <div class="econ-title">Rollen-Multiplikatoren</div>
+            <div class="econ-info">Höchster Faktor gewinnt — Rollen addieren sich nicht.</div>
 
             <div class="econ-row">
-                <label class="econ-label" for="costChatNormal">Kosten Normaluser</label>
-                <input type="number" id="costChatNormal" class="econ-input" min="0" value="1">
+                <label class="econ-label" for="factorMod">MOD-Faktor</label>
+                <input type="number" id="factorMod" class="econ-input" min="1" step="0.1" value="1.5">
             </div>
 
             <div class="econ-row">
-                <label class="econ-label" for="costChatModVip">Kosten MOD + VIP</label>
-                <input type="number" id="costChatModVip" class="econ-input" min="0" value="0">
+                <label class="econ-label" for="factorVip">VIP-Faktor</label>
+                <input type="number" id="factorVip" class="econ-input" min="1" step="0.1" value="1.5">
             </div>
 
-            <div class="econ-info">
-                Admin zahlt immer 0 Fuchsdukaten.
+            <div class="econ-row">
+                <label class="econ-label" for="factorSub">SUB-Faktor</label>
+                <input type="number" id="factorSub" class="econ-input" min="1" step="0.1" value="2.0">
             </div>
+
+            <div class="econ-info">Admin hat immer unendlich F$ 🦊</div>
         </div>
 
     </div>
@@ -40,39 +53,35 @@
     <div class="econ-col">
 
         <div class="econ-section">
-            <div class="econ-title">Watchtime-Einstellungen</div>
+            <div class="econ-title">Bit-Spenden Staffeln</div>
+            <div class="econ-info">F$ = gespendete Bits × Faktor. Jede Spende wird einzeln gewertet.</div>
 
             <div class="econ-row">
-                <label class="econ-label" for="watchMultiplier">Multiplikator</label>
-                <input type="number" id="watchMultiplier" class="econ-input" min="0" step="0.1" value="1">
-            </div>
-
-            <div class="econ-row">
-                <label class="econ-label" for="watchActivateAfterMin">Aktivierung nach Min</label>
-                <input type="number" id="watchActivateAfterMin" class="econ-input" min="0" value="0">
+                <label class="econ-label" for="bitFactor1">ab 10 Bits × Faktor</label>
+                <input type="number" id="bitFactor1" class="econ-input" min="1" step="1" value="1">
             </div>
 
             <div class="econ-row">
-                <label class="econ-label" for="watchDeactivateAfterHours">Deaktivierung nach Std</label>
-                <input type="number" id="watchDeactivateAfterHours" class="econ-input" min="0" value="0">
+                <label class="econ-label" for="bitFactor2">ab 100 Bits × Faktor</label>
+                <input type="number" id="bitFactor2" class="econ-input" min="1" step="1" value="2">
             </div>
-
-            <div class="econ-info">
-                Gilt für Normaluser und MOD. VIP hat eigenen Multiplikator, Admin erhält keine Fuchsdukaten.
-            </div>
-        </div>
-
-        <div class="econ-section">
-            <div class="econ-title">VIP-Multiplikator</div>
 
             <div class="econ-row">
-                <label class="econ-label" for="vipMultiplier">VIP-Multiplikator</label>
-                <input type="number" id="vipMultiplier" class="econ-input" min="0" step="0.1" value="1">
+                <label class="econ-label" for="bitFactor3">ab 1.000 Bits × Faktor</label>
+                <input type="number" id="bitFactor3" class="econ-input" min="1" step="1" value="3">
             </div>
 
-            <div class="econ-info">
-                Für alle Fuchsdukaten-Einnahmen von VIPs.
+            <div class="econ-row">
+                <label class="econ-label" for="bitFactor4">ab 10.000 Bits × Faktor</label>
+                <input type="number" id="bitFactor4" class="econ-input" min="1" step="1" value="4">
             </div>
+
+            <div class="econ-row">
+                <label class="econ-label" for="bitFactor5">ab 100.000 Bits × Faktor</label>
+                <input type="number" id="bitFactor5" class="econ-input" min="1" step="1" value="5">
+            </div>
+
+            <div class="econ-info">Maximum: 100.000 Bits. Unter 10 Bits gibt es keine F$.</div>
         </div>
 
     </div>
@@ -81,11 +90,11 @@
 
 <!-- Speichern -->
 <div class="econ-save-wrapper">
-    <button id="saveEconomyBtn" class="btn-save">Tabinhalt speichern</button>
+    <button id="saveEconomyBtn" class="btn-save">F$ Einstellungen speichern</button>
 </div>
 
 <!-- Stats Box -->
 <div id="economyStats" class="stats-box">
-    <h3>Aktuell gespeicherte Economy-Daten</h3>
+    <h3>Aktuell gespeicherte F$ Einstellungen</h3>
     <p>Wird geladen…</p>
 </div>
