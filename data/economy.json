@@ -1,20 +1,13 @@
 {
-  "currency": "F$",
   "basePerMessage": 1,
-  "cooldownSeconds": 5,
-  "lastMessagesCheck": 3,
-
-  "factors": {
-    "mod": 1.5,
-    "vip": 1.5,
-    "sub": 2.0
-  },
-
-  "bits": {
-    "factor1": 1,
-    "factor2": 2,
-    "factor3": 3,
-    "factor4": 4,
-    "factor5": 5
-  }
+  "cooldownSeconds": 3,
+  "spamCheckMessages": 5,
+  "factorMod": 1.5,
+  "factorVip": 1.7,
+  "factorSub": 2,
+  "bitFactor1": 1.3,
+  "bitFactor2": 1.5,
+  "bitFactor3": 2,
+  "bitFactor4": 2.5,
+  "bitFactor5": 3
 }
