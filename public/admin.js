@@ -1,11 +1,8 @@
 // /home/fynn/TwitchOBSAdmin/public/admin.js
 // Überarbeitete Admin-Frontend-Logik
-// - Endpunkte an server.js angepasst
-// - Banner-Upload sendet Base64 (server erwartet imageBase64)
-// - Fehlerrobuste API-Wrapper und UI-Feedback
 
 // ---------------------------------------------------------
-//  API WRAPPER (PIN entfernt)
+//  API WRAPPER
 // ---------------------------------------------------------
 async function api(url, method = "GET", data = null) {
   const headers = {};
@@ -31,7 +28,7 @@ async function api(url, method = "GET", data = null) {
 }
 
 // ---------------------------------------------------------
-//  INIT (Login entfernt, Tabs direkt aktiv)
+//  INIT
 // ---------------------------------------------------------
 window.onload = () => {
   setupTabs();
@@ -56,25 +53,23 @@ async function setupTabs() {
       if (target) {
         target.style.display = "block";
 
-        // Credits-Tab bleibt leer
         if (tabId === "credits-editor") {
           target.innerHTML = "<p style='opacity:0.6;font-style:italic;'>Credits werden später neu aufgebaut.</p>";
           return;
         }
 
-        // Tab-Inhalt nur laden, wenn leer
         if (target.innerHTML.trim() === "") {
           try {
             const res = await fetch(`${tabId}.html`);
             if (res.ok) {
               target.innerHTML = await res.text();
 
-              if (tabId === 'economy' && typeof loadEconomy === 'function') loadEconomy();
-              if (tabId === 'sound' && typeof loadSounds === 'function') loadSounds();
-              if (tabId === 'duel' && typeof loadDuels === 'function') loadDuels();
-              if (tabId === 'raid' && typeof loadRaidSettings === 'function') loadRaidSettings();
-              if (tabId === 'overlay' && typeof initOverlayAdmin === 'function') initOverlayAdmin();
-              if (tabId === 'security' && typeof initSecurity === 'function') initSecurity();
+              if (tabId === 'economy'       && typeof initEconomy      === 'function') initEconomy();
+              if (tabId === 'sound'         && typeof loadSounds        === 'function') loadSounds();
+              if (tabId === 'duel'          && typeof loadDuels         === 'function') loadDuels();
+              if (tabId === 'raid'          && typeof loadRaidSettings  === 'function') loadRaidSettings();
+              if (tabId === 'overlay-admin' && typeof initOverlayAdmin  === 'function') initOverlayAdmin();
+              if (tabId === 'security'      && typeof initSecurity      === 'function') initSecurity();
             }
           } catch (e) {
             console.error("Fehler beim Laden von " + tabId, e);
@@ -86,83 +81,12 @@ async function setupTabs() {
 }
 
 // ---------------------------------------------------------
-//  LOAD ALL DATA (Credits entfernt)
+//  LOAD ALL DATA
 // ---------------------------------------------------------
 function loadAllTabs() {
-  loadEconomy().catch(() => {});
   loadSoundAlias().catch(() => {});
   loadCamFilters().catch(() => {});
   loadBanner().catch(() => {});
-  // loadCreditsLayout entfernt
-}
-
-// ---------------------------------------------------------
-//  WIRTSCHAFT
-// ---------------------------------------------------------
-async function loadEconomy() {
-  let cfg = {};
-  try {
-    cfg = await api("/api/admin/config");
-  } catch (e) {
-    cfg = {
-      watchtimeMinutes: 60,
-      watchtimeMultiplier: 1,
-      vipMultiplier: 2,
-      chatCostPerMessage: 1,
-      startCapital: 0,
-      categories: []
-    };
-  }
-
-  const setVal = (id, val) => {
-    const el = document.getElementById(id);
-    if (el) el.value = val ?? "";
-  };
-
-  setVal("watchtimeMinutes", cfg.watchtimeMinutes);
-  setVal("watchtimeMultiplier", cfg.watchtimeMultiplier);
-  setVal("vipMultiplier", cfg.vipMultiplier);
-  setVal("chatCostPerMessage", cfg.chatCostPerMessage);
-  setVal("startCapital", cfg.startCapital);
-
-  const catContainer = document.getElementById("cat-container");
-  if (catContainer) {
-    catContainer.innerHTML = "";
-    (cfg.categories || []).forEach(cat => {
-      const div = document.createElement("div");
-      div.innerHTML = `
-        <label>${cat.name}<br>
-          <input type="number" value="${cat.cost}" data-cat="${cat.name}">
-        </label>
-      `;
-      catContainer.appendChild(div);
-    });
-
-    const saveBtn = document.getElementById("saveBtn");
-    if (saveBtn) {
-      saveBtn.onclick = async () => {
-        const newCfg = {
-          watchtimeMinutes: Number(document.getElementById("watchtimeMinutes").value || 0),
-          watchtimeMultiplier: Number(document.getElementById("watchtimeMultiplier").value || 0),
-          vipMultiplier: Number(document.getElementById("vipMultiplier").value || 0),
-          chatCostPerMessage: Number(document.getElementById("chatCostPerMessage").value || 0),
-          startCapital: Number(document.getElementById("startCapital").value || 0),
-          categories: []
-        };
-
-        document.querySelectorAll("[data-cat]").forEach(inp => {
-          newCfg.categories.push({
-            name: inp.dataset.cat,
-            cost: Number(inp.value || 0)
-          });
-        });
-
-        await api("/api/admin/config", "POST", newCfg);
-        const msg = document.getElementById("saveMsg");
-        if (msg) msg.textContent = "Gespeichert!";
-      };
-    }
-  }
 }
 
 // ---------------------------------------------------------
@@ -329,7 +253,7 @@ async function loadBanner() {
 }
 
 // ---------------------------------------------------------
-//  openTab (Credits entfernt)
+//  openTab
 // ---------------------------------------------------------
 function openTab(tabId) {
   const buttons = document.querySelectorAll(".tab-btn");
@@ -350,12 +274,12 @@ function openTab(tabId) {
       .then(html => {
         target.innerHTML = html;
 
-        if (tabId === 'economy' && typeof loadEconomy === 'function') loadEconomy();
-        if (tabId === 'sound' && typeof loadSounds === 'function') loadSounds();
-        if (tabId === 'duel' && typeof loadDuels === 'function') loadDuels();
-        if (tabId === 'raid' && typeof loadRaidSettings === 'function') loadRaidSettings();
-        if (tabId === 'overlay-admin' && typeof initOverlayAdmin === 'function') initOverlayAdmin();
-        if (tabId === 'security' && typeof initSecurity === 'function') initSecurity();
+        if (tabId === 'economy'       && typeof initEconomy      === 'function') initEconomy();
+        if (tabId === 'sound'         && typeof loadSounds        === 'function') loadSounds();
+        if (tabId === 'duel'          && typeof loadDuels         === 'function') loadDuels();
+        if (tabId === 'raid'          && typeof loadRaidSettings  === 'function') loadRaidSettings();
+        if (tabId === 'overlay-admin' && typeof initOverlayAdmin  === 'function') initOverlayAdmin();
+        if (tabId === 'security'      && typeof initSecurity      === 'function') initSecurity();
       });
   }
 }
