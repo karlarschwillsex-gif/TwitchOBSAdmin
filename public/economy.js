@@ -1,4 +1,3 @@
-document.addEventListener("DOMContentLoaded", () => {
     const apiUrl = "/api/admin/economy";
 
     const fields = {
@@ -90,4 +89,3 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     loadEconomy();
-});
