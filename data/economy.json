@@ -1,9 +1,20 @@
 {
-  "costChatNormal": 1,
-  "costChatModVip": 0,
-  "vipMultiplier": 1,
-  "watchMultiplier": 1,
-  "watchActivateAfterMin": 0,
-  "watchDeactivateAfterHours": 0,
-  "startCapital": 0
+  "currency": "F$",
+  "basePerMessage": 1,
+  "cooldownSeconds": 5,
+  "lastMessagesCheck": 3,
+
+  "factors": {
+    "mod": 1.5,
+    "vip": 1.5,
+    "sub": 2.0
+  },
+
+  "bits": {
+    "factor1": 1,
+    "factor2": 2,
+    "factor3": 3,
+    "factor4": 4,
+    "factor5": 5
+  }
 }
