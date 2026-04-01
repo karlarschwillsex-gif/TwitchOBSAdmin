@@ -1,9 +1,9 @@
 // /home/fynn/TwitchOBSAdmin/bot.js
 require('dotenv').config();
-const fs = require('fs');
+const fs   = require('fs');
 const path = require('path');
 
-const ROOT = __dirname;
+const ROOT   = __dirname;
 const LOGDIR = path.join(ROOT, 'logs');
 if (!fs.existsSync(LOGDIR)) fs.mkdirSync(LOGDIR, { recursive: true });
 
@@ -14,9 +14,11 @@ function writeLog(...parts) {
   console.log(...parts);
 }
 
-/* Load bot config safely */
+/* ============================================================
+   BOT CONFIG
+   ============================================================ */
 const cfgPath = path.join(ROOT, 'bot_config.json');
-let botConfig = { botName: 'stubBot', prefix: '!', owner: 'owner', channel: null };
+let botConfig = { botName: 'stubBot', prefix: '+', owner: 'owner', channel: null };
 if (fs.existsSync(cfgPath)) {
   try {
     botConfig = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
@@ -28,21 +30,34 @@ if (fs.existsSync(cfgPath)) {
   writeLog('WARNUNG: bot_config.json nicht gefunden, Default-Konfig wird verwendet.');
 }
 
-/* Env / credentials */
-const TWITCH_BOT_TOKEN = process.env.TWITCH_BOT_TOKEN || null;
-const TWITCH_BOT_USERNAME = botConfig.botName || process.env.TWITCH_BOT_USERNAME || null;
-const CHANNEL = process.env.TWITCH_CHANNEL || botConfig.channel || null;
+/* ============================================================
+   F$ ECONOMY ENGINE
+   ============================================================ */
+let economy = null;
+try {
+  economy = require('./backend/economy.js');
+  writeLog('[bot] F$ Economy-Engine geladen');
+} catch (err) {
+  writeLog('[bot] WARNUNG: Economy-Engine konnte nicht geladen werden:', err.message);
+}
 
-/* Decide mode */
+/* ============================================================
+   CREDENTIALS
+   ============================================================ */
+const TWITCH_BOT_TOKEN    = process.env.TWITCH_BOT_TOKEN    || null;
+const TWITCH_BOT_USERNAME = botConfig.botName               || process.env.TWITCH_BOT_USERNAME || null;
+const CHANNEL             = process.env.TWITCH_CHANNEL      || botConfig.channel               || null;
+
 const useTmi = !!(TWITCH_BOT_TOKEN && TWITCH_BOT_USERNAME && CHANNEL);
 
+/* ============================================================
+   STUB MODUS
+   ============================================================ */
 if (!useTmi) {
   writeLog('INFO: Starte Bot im STUB-Modus (keine Twitch-Credentials gefunden).');
 
-  /* Keepalive */
   setInterval(() => writeLog('[bot] STUB alive'), 60_000);
 
-  /* Health endpoint */
   try {
     const express = require('express');
     const app = express();
@@ -53,7 +68,6 @@ if (!useTmi) {
     writeLog('[bot] express nicht installiert, Health endpoint übersprungen');
   }
 
-  /* Minimal simulated command interface via file watch (optional) */
   try {
     const cmdFile = path.join(ROOT, 'bot_cmd.json');
     fs.writeFileSync(cmdFile, JSON.stringify({ last: null }, null, 2), { flag: 'a' });
@@ -63,27 +77,22 @@ if (!useTmi) {
         if (data && data.last && data.last !== prev.mtimeMs) {
           writeLog('[bot] Simulierter Befehl erkannt:', data.last);
         }
-      } catch (e) { /* ignore parse errors */ }
+      } catch (e) { /* ignore */ }
     });
   } catch (e) {
     writeLog('[bot] Simulierter Befehl Watcher konnte nicht angelegt werden', e.message);
   }
 
-  /* Graceful shutdown */
-  process.on('SIGINT', () => {
-    writeLog('[bot] SIGINT empfangen, beende STUB');
-    process.exit(0);
-  });
-  process.on('SIGTERM', () => {
-    writeLog('[bot] SIGTERM empfangen, beende STUB');
-    process.exit(0);
-  });
+  process.on('SIGINT',  () => { writeLog('[bot] SIGINT, beende STUB');  process.exit(0); });
+  process.on('SIGTERM', () => { writeLog('[bot] SIGTERM, beende STUB'); process.exit(0); });
 
   module.exports = { mode: 'stub' };
   return;
 }
 
-/* Real bot mode using tmi.js */
+/* ============================================================
+   TMI.JS
+   ============================================================ */
 let tmi;
 try {
   tmi = require('tmi.js');
@@ -94,54 +103,44 @@ try {
 
 const client = new tmi.Client({
   options: { debug: false },
-  identity: {
-    username: TWITCH_BOT_USERNAME,
-    password: TWITCH_BOT_TOKEN
-  },
+  identity: { username: TWITCH_BOT_USERNAME, password: TWITCH_BOT_TOKEN },
   channels: [CHANNEL]
 });
 
-/* Connect and handle events */
 client.connect()
   .then(() => writeLog(`[bot] Verbunden als ${TWITCH_BOT_USERNAME} in Channel ${CHANNEL}`))
-  .catch(err => {
-    writeLog('[bot] Verbindung fehlgeschlagen:', err.message || err);
-    process.exit(1);
-  });
+  .catch(err => { writeLog('[bot] Verbindung fehlgeschlagen:', err.message || err); process.exit(1); });
 
-// Duell-System anbinden
+/* ============================================================
+   DUELL-SYSTEM
+   ============================================================ */
 try {
-  const duels = require('./backend/duels');
-  const fetch = require('node-fetch');
-
-  const serverUrl = process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3000}`;
+  const duels  = require('./backend/duels');
 
   duels.attachBot({
-    say: (msg) => client.say(CHANNEL, msg),
+    say:     (msg)       => client.say(CHANNEL, msg),
     whisper: (user, msg) => client.whisper(user, msg),
 
     onMessage: (handler) => {
       client.on('message', (channel, userstate, message, self) => {
         if (self) return;
         handler({
-          user: userstate['display-name'] || userstate.username,
+          user:     userstate['display-name'] || userstate.username,
           username: userstate.username,
-          text: message,
-          isMod: userstate.mod || false,
-          isVIP: userstate.badges?.vip === '1',
-          isSub: userstate.subscriber || false,
-          isAdmin: userstate.username === botConfig.owner
+          text:     message,
+          isMod:    userstate.mod || false,
+          isVIP:    userstate.badges?.vip === '1',
+          isSub:    userstate.subscriber || false,
+          isAdmin:  userstate.username === (botConfig.owner || '').toLowerCase()
         });
       });
     },
 
-    // ECHTE FUCHSDUKATEN (Credits)
     async getBalance(user) {
+      if (!economy) return 0;
       try {
-        const res = await fetch(`${serverUrl}/api/admin/credits/${user}`);
-        if (!res.ok) return 0;
-        const json = await res.json();
-        return json.credits || 0;
+        const data = economy.readCredits(user);
+        return data.credits || 0;
       } catch (err) {
         writeLog('[duels] Fehler getBalance:', err.message);
         return 0;
@@ -149,13 +148,13 @@ try {
     },
 
     async addBalance(user, amount) {
+      if (!economy) return false;
       try {
-        const res = await fetch(`${serverUrl}/api/admin/credits/${user}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ delta: amount })
-        });
-        return res.ok;
+        const data    = economy.readCredits(user);
+        data.credits  = Math.max(0, (data.credits || 0) + amount);
+        data.username = user;
+        economy.writeCredits(user, data);
+        return true;
       } catch (err) {
         writeLog('[duels] Fehler addBalance:', err.message);
         return false;
@@ -163,13 +162,11 @@ try {
     },
 
     async getUserInfo(user) {
-      // Twitch-Rollen aus userstate kommen bereits oben rein
-      // Hier können wir später erweitern (Follower-Check, etc.)
       return {
-        isVIP: false,
-        isMod: false,
-        isSub: false,
-        isAdmin: user === botConfig.owner
+        isVIP:   false,
+        isMod:   false,
+        isSub:   false,
+        isAdmin: user === (botConfig.owner || '').toLowerCase()
       };
     }
   });
@@ -179,65 +176,158 @@ try {
   writeLog('[bot] Fehler beim Laden von duels.js:', err.message || err);
 }
 
-/* Basic command handling */
+/* ============================================================
+   CHAT-NACHRICHTEN → F$ VERGEBEN + COMMANDS
+   ============================================================ */
 client.on('message', async (channel, userstate, message, self) => {
   if (self) return;
-  const prefix = botConfig.prefix || '!';
+
+  const username = (userstate.username || '').toLowerCase();
+  const isAdmin  = username === (botConfig.owner || '').toLowerCase();
+  const isMod    = userstate.mod || false;
+  const isVIP    = userstate.badges?.vip === '1';
+  const isSub    = userstate.subscriber || false;
+
+  // ── F$ für Chatnachricht vergeben ──
+  if (economy) {
+    try {
+      economy.onChatMessage({ username, message, isAdmin, isMod, isVIP, isSub });
+    } catch (e) {
+      writeLog('[bot] Economy Fehler bei onChatMessage:', e.message);
+    }
+  }
+
+  // ── COMMANDS (Prefix: +) ──
+  const prefix = botConfig.prefix || '+';
   if (!message || !message.startsWith(prefix)) return;
 
   const args = message.slice(prefix.length).trim().split(/\s+/);
-  const cmd = (args.shift() || '').toLowerCase();
-  const user = userstate['display-name'] || userstate.username;
+  const cmd  = (args.shift() || '').toLowerCase();
 
-  writeLog('[bot] Command empfangen:', cmd, 'von', user);
+  writeLog('[bot] Command:', cmd, 'von', username);
 
   try {
+
+    // +ping
     if (cmd === 'ping') {
-      await client.say(channel, `@${userstate.username} pong`);
-    } else if (cmd === 'uptime') {
-      await client.say(channel, `@${userstate.username} Bot läuft`);
-    } else if (cmd === 'credits') {
-      try {
-        const fetch = require('node-fetch');
-        const serverUrl = process.env.SERVER_URL || `http://localhost:${process.env.PORT || 3000}`;
-        const res = await fetch(`${serverUrl}/api/admin/credits/${userstate.username}`);
-        if (res.ok) {
-          const json = await res.json();
-          await client.say(channel, `@${userstate.username} Credits: ${json.credits || 0}`);
-        } else {
-          await client.say(channel, `@${userstate.username} Credits nicht verfügbar`);
-        }
-      } catch (e) {
-        writeLog('[bot] Fehler beim Abfragen der Credits API', e.message || e);
-        await client.say(channel, `@${userstate.username} Fehler beim Abrufen der Credits`);
+      await client.say(channel, `@${username} pong 🦊`);
+
+    // +guthaben / +fd / +fuchsdollar
+    } else if (cmd === 'guthaben' || cmd === 'fd' || cmd === 'fuchsdollar') {
+      if (economy) {
+        const data = economy.readCredits(username);
+        const bal  = isAdmin ? '∞' : (data.credits || 0);
+        await client.say(channel, `@${username} Du hast ${bal} F$ 🦊`);
       }
-    } else if (cmd === 'owner' && (userstate.username === botConfig.owner || userstate.mod)) {
-      await client.say(channel, `@${userstate.username} Owner-Befehl ausgeführt`);
-    } else {
-      // Unknown command - ignore
+
+    // +top — Top 5 reichste Chatter
+    } else if (cmd === 'top') {
+      if (economy) {
+        try {
+          const creditsDir = path.join(ROOT, 'data', 'credits');
+          const files = fs.readdirSync(creditsDir).filter(f => f.endsWith('.json'));
+          const all = files
+            .map(f => { try { return JSON.parse(fs.readFileSync(path.join(creditsDir, f), 'utf8')); } catch { return null; } })
+            .filter(d => d && d.username && typeof d.credits === 'number')
+            .filter(d => d.credits < economy.ADMIN_BALANCE)
+            .sort((a, b) => b.credits - a.credits)
+            .slice(0, 5);
+
+          if (all.length === 0) {
+            await client.say(channel, 'Noch keine F$ Daten vorhanden.');
+          } else {
+            const text = all.map((d, i) => `${i + 1}. ${d.username}: ${d.credits} F$`).join(' | ');
+            await client.say(channel, `🏆 Top F$: ${text}`);
+          }
+        } catch (e) {
+          writeLog('[bot] Fehler bei +top:', e.message);
+        }
+      }
+
+    // +gift / +give / +spende <user> <betrag>
+    } else if (cmd === 'gift' || cmd === 'give' || cmd === 'spende') {
+      if (economy) {
+        const target = (args[0] || '').replace('@', '').toLowerCase();
+        const amount = parseInt(args[1] || '0', 10);
+
+        if (!target || amount <= 0) {
+          await client.say(channel, `@${username} Nutzung: +gift <User> <Betrag>`);
+          return;
+        }
+
+        const senderData = economy.readCredits(username);
+        const senderBal  = isAdmin ? economy.ADMIN_BALANCE : (senderData.credits || 0);
+
+        if (!isAdmin && senderBal < amount) {
+          await client.say(channel, `@${username} Du hast nicht genug F$! Dein Guthaben: ${senderBal} F$`);
+          return;
+        }
+
+        if (!isAdmin) {
+          senderData.credits = senderBal - amount;
+          economy.writeCredits(username, senderData);
+        }
+
+        const targetData    = economy.readCredits(target);
+        targetData.credits  = (targetData.credits || 0) + amount;
+        targetData.username = target;
+        economy.writeCredits(target, targetData);
+
+        await client.say(channel, `@${username} hat ${amount} F$ an @${target} verschenkt! 🦊`);
+      }
+
+    // +uptime
+    } else if (cmd === 'uptime') {
+      await client.say(channel, `@${username} Bot läuft 🦊`);
+
+    // +owner (nur Owner/Mods)
+    } else if (cmd === 'owner' && (username === (botConfig.owner || '').toLowerCase() || isMod)) {
+      await client.say(channel, `@${username} Owner-Befehl ausgeführt`);
     }
+
   } catch (e) {
-    writeLog('[bot] Fehler bei Command Verarbeitung', e && e.stack ? e.stack : e);
+    writeLog('[bot] Fehler bei Command:', e && e.stack ? e.stack : e);
   }
 });
 
-/* Keepalive logging */
+/* ============================================================
+   BIT-SPENDEN → F$ VERGEBEN
+   ============================================================ */
+client.on('cheer', async (channel, userstate, message) => {
+  if (!economy) return;
+
+  const username = (userstate.username || '').toLowerCase();
+  const bits     = parseInt(userstate.bits || '0', 10);
+
+  if (bits <= 0) return;
+
+  try {
+    const result = economy.onBitDonation({ username, bits });
+
+    if (result.delta > 0) {
+      writeLog(`[bot] Bit-Spende: ${username} spendete ${bits} Bits → +${result.delta} F$`);
+      await client.say(channel,
+        `@${username} Danke für ${bits} Bits! 🎉 Du bekommst ${result.delta} F$ (×${result.factor}) 🦊`
+      );
+    }
+  } catch (e) {
+    writeLog('[bot] Fehler bei Bit-Spende:', e.message);
+  }
+});
+
+/* ============================================================
+   KEEPALIVE & SHUTDOWN
+   ============================================================ */
 setInterval(() => writeLog('[bot] alive (tmi.js)'), 60_000);
 
-/* Graceful shutdown */
 const shutdown = async () => {
   writeLog('[bot] Beende Verbindung...');
-  try {
-    await client.disconnect();
-    writeLog('[bot] Verbindung beendet');
-  } catch (e) {
-    writeLog('[bot] Fehler beim Disconnect:', e.message || e);
-  }
+  try { await client.disconnect(); writeLog('[bot] Verbindung beendet'); }
+  catch (e) { writeLog('[bot] Fehler beim Disconnect:', e.message || e); }
   process.exit(0);
 };
 
-process.on('SIGINT', shutdown);
+process.on('SIGINT',  shutdown);
 process.on('SIGTERM', shutdown);
 
 module.exports = { mode: 'tmi', client };
-
