@@ -1,22 +1,49 @@
 // /home/fynn/TwitchOBSAdmin/server.js
 require('dotenv').config();
-const express = require('express');
-const morgan = require('morgan');
-const fs = require('fs');
-const path = require('path');
-const fetch = require('node-fetch');
-const duels = require('./backend/duels');
+const express    = require('express');
+const morgan     = require('morgan');
+const fs         = require('fs');
+const path       = require('path');
+const http       = require('http');
+const WebSocket  = require('ws');
+const fetch      = require('node-fetch');
+const duels      = require('./backend/duels');
 const { getVirtualCamFilters } = require('./backend/obs-connection');
-
-// EventSub (ESM import)
 const { router: eventsubRouter, registerEventSubs } = require('./backend/eventsub.js');
+const handleRewardEvent = require('./handleRewardEvent.js');
+const twitchRewards     = require('./backend/twitchRewards.js');
 
-const app = express();
+const app  = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const ROOT = __dirname;
 
 /* ============================================================
-   RAW BODY FÜR EVENTSUB (MUSS GANZ OBEN SEIN!)
+   HTTP SERVER + WEBSOCKET
+   ============================================================ */
+const server    = http.createServer(app);
+const wss       = new WebSocket.Server({ server });
+const wsClients = new Set();
+
+wss.on('connection', (ws) => {
+  wsClients.add(ws);
+  console.log('[ws] Client verbunden, gesamt:', wsClients.size);
+  ws.on('close', () => { wsClients.delete(ws); });
+  ws.on('error', (err) => { wsClients.delete(ws); });
+});
+
+function broadcast(data) {
+  const msg = JSON.stringify(data);
+  wsClients.forEach(ws => {
+    if (ws.readyState === WebSocket.OPEN) {
+      try { ws.send(msg); } catch (e) { }
+    }
+  });
+}
+
+handleRewardEvent.setBroadcast(broadcast);
+
+/* ============================================================
+   RAW BODY FÜR EVENTSUB
    ============================================================ */
 app.use('/eventsub', express.raw({ type: 'application/json' }));
 
@@ -32,80 +59,91 @@ app.use(express.static(path.join(ROOT, 'public')));
    CONFIG PATHS
    ============================================================ */
 const CONFIG = {
-  coins: path.join(ROOT, 'config.json'),
+  coins:        path.join(ROOT, 'config.json'),
   soundSettings: path.join(ROOT, 'sound_settings.json'),
-  soundAlias: path.join(ROOT, 'sound_alias.json'),
+  soundAlias:   path.join(ROOT, 'sound_alias.json'),
   bannerFolder: path.join(ROOT, 'public', 'banner')
 };
 
-const CAMFILTER_FILE = path.join(ROOT, 'data', 'camfilters.json');
-const ECONOMY_FILE = path.join(ROOT, 'data', 'economy.json');
+const CAMFILTER_FILE     = path.join(ROOT, 'data', 'camfilters.json');
+const ECONOMY_FILE       = path.join(ROOT, 'data', 'economy.json');
+const CREDITS_DIR        = path.join(ROOT, 'data', 'credits');
+const SOUND_REWARDS_FILE = path.join(ROOT, 'data', 'sound_rewards.json');
+const BIT_SOUNDS_FILE    = path.join(ROOT, 'data', 'bit_sounds.json');
+const SOUNDS_DIR         = path.join(ROOT, 'public', 'sounds');
 
 /* ============================================================
    DIRECTORY SETUP
    ============================================================ */
 try {
-  if (!fs.existsSync(path.join(ROOT, 'public'))) fs.mkdirSync(path.join(ROOT, 'public'), { recursive: true });
-  if (!fs.existsSync(CONFIG.bannerFolder)) fs.mkdirSync(CONFIG.bannerFolder, { recursive: true });
-  if (!fs.existsSync(path.join(ROOT, 'data'))) fs.mkdirSync(path.join(ROOT, 'data'), { recursive: true });
+  [path.join(ROOT, 'public'), CONFIG.bannerFolder, path.join(ROOT, 'data'), CREDITS_DIR, SOUNDS_DIR]
+    .forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
 } catch (err) {
   console.error('[server] Fehler beim Anlegen von Verzeichnissen', err);
 }
 
 /* ============================================================
-   CAMFILTER JSON HELPERS
+   HELPERS
    ============================================================ */
+function safeReadJson(filePath, defaultObj = {}) {
+  try {
+    if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, JSON.stringify(defaultObj, null, 2));
+    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+  } catch (err) { return defaultObj; }
+}
+
+function safeWriteJson(filePath, obj) {
+  try { fs.writeFileSync(filePath, JSON.stringify(obj, null, 2)); return true; }
+  catch (err) { return false; }
+}
+
+function creditsFile(username) {
+  const safe = String(username || 'unknown').toLowerCase().replace(/[^a-z0-9_-]/g, '_');
+  return path.join(CREDITS_DIR, `${safe}.json`);
+}
+
+function readCredits(username) {
+  const fp = creditsFile(username);
+  try {
+    if (!fs.existsSync(fp)) return { username, credits: 0 };
+    return JSON.parse(fs.readFileSync(fp, 'utf8'));
+  } catch (e) { return { username, credits: 0 }; }
+}
+
+function writeCredits(username, obj) {
+  try { fs.writeFileSync(creditsFile(username), JSON.stringify(obj, null, 2)); return true; }
+  catch (e) { return false; }
+}
+
 function loadCamfilterSettings() {
   try {
-    if (!fs.existsSync(CAMFILTER_FILE)) {
-      fs.writeFileSync(CAMFILTER_FILE, '[]');
-    }
+    if (!fs.existsSync(CAMFILTER_FILE)) fs.writeFileSync(CAMFILTER_FILE, '[]');
     return JSON.parse(fs.readFileSync(CAMFILTER_FILE, 'utf8'));
-  } catch (err) {
-    console.error('[server] camfilters.json lesen Fehler:', err);
-    return [];
-  }
+  } catch (err) { return []; }
 }
 
 function saveCamfilterSettings(filters) {
-  try {
-    fs.writeFileSync(CAMFILTER_FILE, JSON.stringify(filters, null, 2), 'utf8');
-  } catch (err) {
-    console.error('[server] camfilters.json schreiben Fehler:', err);
-  }
+  try { fs.writeFileSync(CAMFILTER_FILE, JSON.stringify(filters, null, 2), 'utf8'); }
+  catch (err) { console.error('[server] camfilters Fehler:', err); }
 }
 
-/* ============================================================
-   ECONOMY JSON HELPERS
-   ============================================================ */
 function loadEconomy() {
   try {
     if (!fs.existsSync(ECONOMY_FILE)) {
       fs.writeFileSync(ECONOMY_FILE, JSON.stringify({
-        costChatNormal: 1,
-        costChatModVip: 0,
-        vipMultiplier: 1,
-        watchMultiplier: 1,
-        watchActivateAfterMin: 0,
-        watchDeactivateAfterHours: 0,
-        startCapital: 0
+        basePerMessage: 1, cooldownSeconds: 5, spamCheckMessages: 3,
+        factorMod: 1.5, factorVip: 1.5, factorSub: 2.0,
+        bitFactor1: 1.0, bitFactor2: 1.5, bitFactor3: 2.0,
+        bitFactor4: 2.5, bitFactor5: 3.0
       }, null, 2));
     }
     return JSON.parse(fs.readFileSync(ECONOMY_FILE, 'utf8'));
-  } catch (err) {
-    console.error('[server] economy.json lesen Fehler:', err);
-    return {};
-  }
+  } catch (err) { return {}; }
 }
 
 function saveEconomy(cfg) {
-  try {
-    fs.writeFileSync(ECONOMY_FILE, JSON.stringify(cfg, null, 2));
-    return true;
-  } catch (err) {
-    console.error('[server] economy.json schreiben Fehler:', err);
-    return false;
-  }
+  try { fs.writeFileSync(ECONOMY_FILE, JSON.stringify(cfg, null, 2)); return true; }
+  catch (err) { return false; }
 }
 
 /* ============================================================
@@ -118,20 +156,21 @@ app.get('/', (req, res) => {
 });
 
 app.get('/_status', (req, res) => {
-  res.json({
-    status: 'ok',
-    time: new Date().toISOString(),
-    env: {
-      port: PORT,
-      eventsub_callback: process.env.TWITCH_EVENTSUB_CALLBACK || null
-    }
-  });
+  res.json({ status: 'ok', time: new Date().toISOString(), wsClients: wsClients.size });
 });
 
 /* ============================================================
-   EVENTSUB ROUTER (NEU)
+   EVENTSUB ROUTER
    ============================================================ */
-app.use("/", eventsubRouter);
+app.use('/', eventsubRouter);
+
+/* ============================================================
+   OVERLAY BROADCAST
+   ============================================================ */
+app.post('/api/overlay/broadcast', (req, res) => {
+  broadcast(req.body || {});
+  res.json({ ok: true });
+});
 
 /* ============================================================
    DUELS
@@ -139,11 +178,120 @@ app.use("/", eventsubRouter);
 app.use('/api/admin/duels', duels.router);
 
 /* ============================================================
+   SOUND-DATEIEN
+   ============================================================ */
+app.get('/api/admin/sound-files', (req, res) => {
+  try {
+    const files = fs.readdirSync(SOUNDS_DIR)
+      .filter(f => /\.(mp3|wav|ogg|m4a)$/i.test(f))
+      .sort();
+    res.json({ files });
+  } catch (e) { res.json({ files: [] }); }
+});
+
+/* ============================================================
+   SOUND-REWARDS (FoxChatPoints)
+   ============================================================ */
+app.get('/api/admin/sound-rewards', (req, res) => {
+  res.json(safeReadJson(SOUND_REWARDS_FILE, []));
+});
+
+app.post('/api/admin/sound-rewards', (req, res) => {
+  const rewards = Array.isArray(req.body) ? req.body : [];
+  res.json({ ok: safeWriteJson(SOUND_REWARDS_FILE, rewards) });
+});
+
+app.post('/api/admin/sound-rewards/create', async (req, res) => {
+  const { rewardName, file, cost, volume } = req.body || {};
+  if (!rewardName || !file) return res.status(400).json({ ok: false, error: 'rewardName und file erforderlich' });
+  try {
+    const reward = await twitchRewards.createReward({
+      title: rewardName, cost: Number(cost) || 100,
+      is_enabled: true, is_user_input_required: false
+    });
+    const rewards = safeReadJson(SOUND_REWARDS_FILE, []);
+    rewards.push({ rewardName, file, volume: Number(volume) || 80, cost: Number(cost) || 100, rewardId: reward?.id || null });
+    safeWriteJson(SOUND_REWARDS_FILE, rewards);
+    res.json({ ok: true, reward });
+  } catch (e) {
+    console.error('[server] sound-rewards/create Fehler:', e.message);
+    res.json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/admin/sound-rewards/update-twitch', async (req, res) => {
+  const { rewardId, cost } = req.body || {};
+  if (!rewardId) return res.status(400).json({ ok: false, error: 'rewardId fehlt' });
+  try {
+    await twitchRewards.updateReward(rewardId, { cost: Number(cost) });
+    res.json({ ok: true });
+  } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+
+app.post('/api/admin/sound-rewards/delete-twitch', async (req, res) => {
+  const { rewardId } = req.body || {};
+  if (!rewardId) return res.status(400).json({ ok: false, error: 'rewardId fehlt' });
+  try {
+    await twitchRewards.deleteReward(rewardId);
+    res.json({ ok: true });
+  } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+
+/* ============================================================
+   BIT-SOUNDS
+   ============================================================ */
+app.get('/api/admin/bit-sounds', (req, res) => {
+  res.json(safeReadJson(BIT_SOUNDS_FILE, []));
+});
+
+app.post('/api/admin/bit-sounds', (req, res) => {
+  const bitSounds = Array.isArray(req.body) ? req.body : [];
+  res.json({ ok: safeWriteJson(BIT_SOUNDS_FILE, bitSounds) });
+});
+
+/* ============================================================
+   CREDITS API
+   ============================================================ */
+app.get('/api/admin/credits', (req, res) => {
+  try {
+    const files = fs.readdirSync(CREDITS_DIR).filter(f => f.endsWith('.json'));
+    const all   = files.map(f => {
+      try { return JSON.parse(fs.readFileSync(path.join(CREDITS_DIR, f), 'utf8')); }
+      catch { return null; }
+    }).filter(Boolean);
+    res.json(all);
+  } catch (e) { res.json([]); }
+});
+
+app.get('/api/admin/credits/:username', (req, res) => res.json(readCredits(req.params.username)));
+
+app.post('/api/admin/credits/:username', (req, res) => {
+  const username = req.params.username;
+  const body     = req.body || {};
+  const data     = readCredits(username);
+  if (typeof body.credits === 'number')    data.credits = body.credits;
+  else if (typeof body.delta === 'number') data.credits = (data.credits || 0) + body.delta;
+  else return res.status(400).json({ error: 'Bitte {credits: n} oder {delta: n} senden' });
+  data.username = username;
+  return writeCredits(username, data)
+    ? res.json({ ok: true, credits: data.credits })
+    : res.status(500).json({ error: 'Schreibfehler' });
+});
+
+app.delete('/api/admin/credits/:username', (req, res) => {
+  const username = req.params.username;
+  const data     = readCredits(username);
+  data.credits   = 0;
+  return writeCredits(username, data)
+    ? res.json({ ok: true, credits: 0 })
+    : res.status(500).json({ error: 'Schreibfehler' });
+});
+
+/* ============================================================
    BANNER
    ============================================================ */
 app.get('/api/admin/banner', (req, res) => {
-  const bannerPath = path.join(CONFIG.bannerFolder, 'banner.png');
-  res.json({ exists: fs.existsSync(bannerPath) });
+  res.json({ exists: fs.existsSync(path.join(CONFIG.bannerFolder, 'banner.png')) });
 });
 
 app.post('/api/admin/banner', (req, res) => {
@@ -153,133 +301,59 @@ app.post('/api/admin/banner', (req, res) => {
     const data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     fs.writeFileSync(path.join(CONFIG.bannerFolder, 'banner.png'), Buffer.from(data, 'base64'));
     return res.json({ ok: true });
-  } catch (err) {
-    console.error('[server] banner upload error', err);
-    return res.status(500).json({ error: 'Speicherfehler' });
-  }
+  } catch (err) { return res.status(500).json({ error: 'Speicherfehler' }); }
 });
 
 app.delete('/api/admin/banner', (req, res) => {
   try {
-    const bannerPath = path.join(CONFIG.bannerFolder, 'banner.png');
-    if (fs.existsSync(bannerPath)) fs.unlinkSync(bannerPath);
+    const p = path.join(CONFIG.bannerFolder, 'banner.png');
+    if (fs.existsSync(p)) fs.unlinkSync(p);
     return res.json({ ok: true });
-  } catch (err) {
-    console.error('[server] banner delete error', err);
-    return res.status(500).json({ error: 'Löschfehler' });
-  }
+  } catch (err) { return res.status(500).json({ error: 'Löschfehler' }); }
 });
 
 /* ============================================================
    OBS FILTER
    ============================================================ */
 app.get('/api/admin/obs-filters', async (req, res) => {
-  try {
-    const filters = await getVirtualCamFilters();
-    res.json({ filters });
-  } catch (err) {
-    console.error('[server] /api/admin/obs-filters Fehler:', err);
-    res.json({ filters: [] });
-  }
+  try { res.json({ filters: await getVirtualCamFilters() }); }
+  catch (err) { res.json({ filters: [] }); }
 });
 
 /* ============================================================
    CAMFILTER SETTINGS
    ============================================================ */
-app.get('/api/admin/camfilter-settings', (req, res) => {
-  res.json(loadCamfilterSettings());
-});
+app.get('/api/admin/camfilter-settings', (req, res) => res.json(loadCamfilterSettings()));
 
 app.post('/api/admin/camfilter-settings', (req, res) => {
-  const filters = Array.isArray(req.body) ? req.body : [];
-  saveCamfilterSettings(filters);
+  saveCamfilterSettings(Array.isArray(req.body) ? req.body : []);
   res.json({ ok: true });
 });
 
 app.post('/api/admin/camfilter-settings/add', (req, res) => {
   const { filterName, cost, duration } = req.body || {};
-
-  if (!filterName) {
-    return res.status(400).json({ ok: false, error: 'filterName fehlt' });
-  }
-
+  if (!filterName) return res.status(400).json({ ok: false, error: 'filterName fehlt' });
   const filters = loadCamfilterSettings();
-
-  const filter = {
-    filterName,
-    cost: Number(cost) || 0,
-    duration: Number(duration) || 5
-  };
-
-  filters.push(filter);
+  filters.push({ filterName, cost: Number(cost) || 0, duration: Number(duration) || 5 });
   saveCamfilterSettings(filters);
-
-  res.json({ ok: true, filter });
+  res.json({ ok: true });
 });
 
 /* ============================================================
-   CONFIG (Coins, Sound, Alias)
+   CONFIG / SOUND ALIAS
    ============================================================ */
-function safeReadJson(filePath, defaultObj = {}) {
-  try {
-    if (!fs.existsSync(filePath)) {
-      fs.writeFileSync(filePath, JSON.stringify(defaultObj, null, 2));
-    }
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
-  } catch (err) {
-    console.error('[server] safeReadJson Fehler', err);
-    return defaultObj;
-  }
-}
-
-function safeWriteJson(filePath, obj) {
-  try {
-    fs.writeFileSync(filePath, JSON.stringify(obj, null, 2));
-    return true;
-  } catch (err) {
-    console.error('[server] safeWriteJson Fehler', err);
-    return false;
-  }
-}
-
-app.get('/api/admin/config', (req, res) => {
-  res.json(safeReadJson(CONFIG.coins, {}));
-});
-
-app.post('/api/admin/config', (req, res) => {
-  safeWriteJson(CONFIG.coins, req.body || {});
-  res.json({ ok: true });
-});
-
-app.get('/api/admin/sound-settings', (req, res) => {
-  res.json(safeReadJson(CONFIG.soundSettings, {}));
-});
-
-app.post('/api/admin/sound-settings', (req, res) => {
-  safeWriteJson(CONFIG.soundSettings, req.body || {});
-  res.json({ ok: true });
-});
-
-app.get('/api/admin/sound-alias', (req, res) => {
-  res.json(safeReadJson(CONFIG.soundAlias, []));
-});
-
-app.post('/api/admin/sound-alias', (req, res) => {
-  safeWriteJson(CONFIG.soundAlias, req.body || []);
-  res.json({ ok: true });
-});
+app.get('/api/admin/config',          (req, res) => res.json(safeReadJson(CONFIG.coins, {})));
+app.post('/api/admin/config',         (req, res) => { safeWriteJson(CONFIG.coins, req.body || {}); res.json({ ok: true }); });
+app.get('/api/admin/sound-settings',  (req, res) => res.json(safeReadJson(CONFIG.soundSettings, {})));
+app.post('/api/admin/sound-settings', (req, res) => { safeWriteJson(CONFIG.soundSettings, req.body || {}); res.json({ ok: true }); });
+app.get('/api/admin/sound-alias',     (req, res) => res.json(safeReadJson(CONFIG.soundAlias, [])));
+app.post('/api/admin/sound-alias',    (req, res) => { safeWriteJson(CONFIG.soundAlias, req.body || []); res.json({ ok: true }); });
 
 /* ============================================================
    ECONOMY API
    ============================================================ */
-app.get('/api/admin/economy', (req, res) => {
-  res.json(loadEconomy());
-});
-
-app.post('/api/admin/economy', (req, res) => {
-  const ok = saveEconomy(req.body || {});
-  res.json({ ok });
-});
+app.get('/api/admin/economy',  (req, res) => res.json(loadEconomy()));
+app.post('/api/admin/economy', (req, res) => res.json({ ok: saveEconomy(req.body || {}) }));
 
 /* ============================================================
    ERROR HANDLER
@@ -292,10 +366,9 @@ app.use((err, req, res, next) => {
 /* ============================================================
    SERVER START
    ============================================================ */
-const server = app.listen(PORT, async () => {
+server.listen(PORT, async () => {
   console.log(`Admin-Backend läuft auf http://localhost:${PORT}`);
-
-  // EventSub registrieren
+  console.log(`WebSocket läuft auf ws://localhost:${PORT}`);
   await registerEventSubs();
 });
 
@@ -304,15 +377,9 @@ const server = app.listen(PORT, async () => {
    ============================================================ */
 function shutdown() {
   console.log('[server] Beende Server...');
-  server.close(() => {
-    console.log('[server] HTTP Server beendet');
-    process.exit(0);
-  });
-  setTimeout(() => {
-    console.warn('[server] Forciertes Beenden');
-    process.exit(1);
-  }, 5000).unref();
+  server.close(() => { console.log('[server] HTTP Server beendet'); process.exit(0); });
+  setTimeout(() => { process.exit(1); }, 5000).unref();
 }
 
-process.on('SIGINT', shutdown);
+process.on('SIGINT',  shutdown);
 process.on('SIGTERM', shutdown);

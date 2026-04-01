@@ -10,7 +10,7 @@ if (!fs.existsSync(LOGDIR)) fs.mkdirSync(LOGDIR, { recursive: true });
 const LOGFILE = path.join(LOGDIR, 'bot.log');
 function writeLog(...parts) {
   const line = `[${new Date().toISOString()}] ${parts.map(p => (typeof p === 'string' ? p : JSON.stringify(p))).join(' ')}\n`;
-  try { fs.appendFileSync(LOGFILE, line); } catch (e) { /* ignore */ }
+  try { fs.appendFileSync(LOGFILE, line); } catch (e) { }
   console.log(...parts);
 }
 
@@ -23,11 +23,9 @@ if (fs.existsSync(cfgPath)) {
   try {
     botConfig = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
     writeLog('bot_config.json geladen:', botConfig.botName || 'unnamed');
-  } catch (err) {
-    writeLog('Fehler beim Lesen bot_config.json:', err.message);
-  }
+  } catch (err) { writeLog('Fehler beim Lesen bot_config.json:', err.message); }
 } else {
-  writeLog('WARNUNG: bot_config.json nicht gefunden, Default-Konfig wird verwendet.');
+  writeLog('WARNUNG: bot_config.json nicht gefunden.');
 }
 
 /* ============================================================
@@ -37,8 +35,23 @@ let economy = null;
 try {
   economy = require('./backend/economy.js');
   writeLog('[bot] F$ Economy-Engine geladen');
-} catch (err) {
-  writeLog('[bot] WARNUNG: Economy-Engine konnte nicht geladen werden:', err.message);
+} catch (err) { writeLog('[bot] WARNUNG: Economy-Engine nicht geladen:', err.message); }
+
+/* ============================================================
+   BIT-SOUNDS LADEN
+   ============================================================ */
+const BIT_SOUNDS_FILE = path.join(ROOT, 'data', 'bit_sounds.json');
+
+function loadBitSounds() {
+  try {
+    if (!fs.existsSync(BIT_SOUNDS_FILE)) return [];
+    return JSON.parse(fs.readFileSync(BIT_SOUNDS_FILE, 'utf8'));
+  } catch (e) { return []; }
+}
+
+function findBitSound(bits) {
+  const list = loadBitSounds();
+  return list.find(b => bits >= b.from && bits <= b.to) || null;
 }
 
 /* ============================================================
@@ -47,6 +60,7 @@ try {
 const TWITCH_BOT_TOKEN    = process.env.TWITCH_BOT_TOKEN    || null;
 const TWITCH_BOT_USERNAME = botConfig.botName               || process.env.TWITCH_BOT_USERNAME || null;
 const CHANNEL             = process.env.TWITCH_CHANNEL      || botConfig.channel               || null;
+const SERVER_URL          = process.env.SERVER_URL          || `http://localhost:${process.env.PORT || 3000}`;
 
 const useTmi = !!(TWITCH_BOT_TOKEN && TWITCH_BOT_USERNAME && CHANNEL);
 
@@ -54,7 +68,7 @@ const useTmi = !!(TWITCH_BOT_TOKEN && TWITCH_BOT_USERNAME && CHANNEL);
    STUB MODUS
    ============================================================ */
 if (!useTmi) {
-  writeLog('INFO: Starte Bot im STUB-Modus (keine Twitch-Credentials gefunden).');
+  writeLog('INFO: Starte Bot im STUB-Modus.');
   setInterval(() => writeLog('[bot] STUB alive'), 60_000);
 
   try {
@@ -63,26 +77,16 @@ if (!useTmi) {
     app.get('/', (req, res) => res.send('Bot STUB läuft'));
     const port = parseInt(process.env.BOT_HEALTH_PORT || '9090', 10);
     app.listen(port, () => writeLog(`[bot] Health endpoint läuft auf http://localhost:${port}`));
-  } catch (e) {
-    writeLog('[bot] express nicht installiert, Health endpoint übersprungen');
-  }
+  } catch (e) { }
 
   try {
     const cmdFile = path.join(ROOT, 'bot_cmd.json');
     fs.writeFileSync(cmdFile, JSON.stringify({ last: null }, null, 2), { flag: 'a' });
-    fs.watchFile(cmdFile, { interval: 1000 }, (curr, prev) => {
-      try {
-        const data = JSON.parse(fs.readFileSync(cmdFile, 'utf8'));
-        if (data && data.last && data.last !== prev.mtimeMs) writeLog('[bot] Simulierter Befehl erkannt:', data.last);
-      } catch (e) { /* ignore */ }
-    });
-  } catch (e) {
-    writeLog('[bot] Simulierter Befehl Watcher konnte nicht angelegt werden', e.message);
-  }
+    fs.watchFile(cmdFile, { interval: 1000 }, () => { });
+  } catch (e) { }
 
   process.on('SIGINT',  () => { writeLog('[bot] SIGINT, beende STUB');  process.exit(0); });
   process.on('SIGTERM', () => { writeLog('[bot] SIGTERM, beende STUB'); process.exit(0); });
-
   module.exports = { mode: 'stub' };
   return;
 }
@@ -94,7 +98,7 @@ let tmi;
 try {
   tmi = require('tmi.js');
 } catch (err) {
-  writeLog('ERROR: tmi.js nicht installiert. Installiere mit: npm install tmi.js');
+  writeLog('ERROR: tmi.js nicht installiert.');
   process.exit(1);
 }
 
@@ -109,19 +113,31 @@ client.connect()
   .catch(err => { writeLog('[bot] Verbindung fehlgeschlagen:', err.message || err); process.exit(1); });
 
 /* ============================================================
-   ANTWORT HELPER — Whisper oder Chat je nach Config
+   ANTWORT HELPER — Whisper oder Chat
    ============================================================ */
 async function reply(channel, username, cmd, message) {
   const whisperCmds = botConfig.whisperCommands || [];
   if (whisperCmds.includes(cmd)) {
-    try {
-      await client.whisper(username, message);
-    } catch (e) {
-      // Whisper fehlgeschlagen → Fallback auf Chat
-      await client.say(channel, `@${username} ${message}`);
-    }
+    try { await client.whisper(username, message); }
+    catch (e) { await client.say(channel, `@${username} ${message}`); }
   } else {
     await client.say(channel, `@${username} ${message}`);
+  }
+}
+
+/* ============================================================
+   BROADCAST AN OVERLAY
+   ============================================================ */
+async function broadcastSound(file, volume) {
+  try {
+    const fetch = require('node-fetch');
+    await fetch(`${SERVER_URL}/api/overlay/broadcast`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ type: 'sound:play', file, volume: volume / 100 })
+    });
+  } catch (e) {
+    writeLog('[bot] Broadcast Fehler:', e.message);
   }
 }
 
@@ -152,13 +168,8 @@ try {
 
     async getBalance(user) {
       if (!economy) return 0;
-      try {
-        const data = economy.readCredits(user);
-        return data.credits || 0;
-      } catch (err) {
-        writeLog('[duels] Fehler getBalance:', err.message);
-        return 0;
-      }
+      try { return economy.readCredits(user).credits || 0; }
+      catch (err) { return 0; }
     },
 
     async addBalance(user, amount) {
@@ -169,26 +180,19 @@ try {
         data.username = user;
         economy.writeCredits(user, data);
         return true;
-      } catch (err) {
-        writeLog('[duels] Fehler addBalance:', err.message);
-        return false;
-      }
+      } catch (err) { return false; }
     },
 
     async getUserInfo(user) {
       return {
-        isVIP:   false,
-        isMod:   false,
-        isSub:   false,
+        isVIP: false, isMod: false, isSub: false,
         isAdmin: user === (botConfig.owner || '').toLowerCase()
       };
     }
   });
 
   writeLog('[bot] Duell-System erfolgreich angebunden');
-} catch (err) {
-  writeLog('[bot] Fehler beim Laden von duels.js:', err.message || err);
-}
+} catch (err) { writeLog('[bot] Fehler beim Laden von duels.js:', err.message || err); }
 
 /* ============================================================
    CHAT-NACHRICHTEN → F$ + COMMANDS
@@ -202,16 +206,13 @@ client.on('message', async (channel, userstate, message, self) => {
   const isVIP    = userstate.badges?.vip === '1';
   const isSub    = userstate.subscriber || false;
 
-  // ── F$ für Chatnachricht vergeben ──
+  // ── F$ vergeben ──
   if (economy) {
-    try {
-      economy.onChatMessage({ username, message, isAdmin, isMod, isVIP, isSub });
-    } catch (e) {
-      writeLog('[bot] Economy Fehler:', e.message);
-    }
+    try { economy.onChatMessage({ username, message, isAdmin, isMod, isVIP, isSub }); }
+    catch (e) { writeLog('[bot] Economy Fehler:', e.message); }
   }
 
-  // ── COMMANDS ──
+  // ── Commands ──
   const prefix = botConfig.prefix || '+';
   if (!message || !message.startsWith(prefix)) return;
 
@@ -221,12 +222,9 @@ client.on('message', async (channel, userstate, message, self) => {
   writeLog('[bot] Command:', cmd, 'von', username);
 
   try {
-
-    // +ping
     if (cmd === 'ping') {
       await reply(channel, username, cmd, 'pong 🦊');
 
-    // +guthaben / +fd / +fuchsdollar
     } else if (cmd === 'guthaben' || cmd === 'fd' || cmd === 'fuchsdollar') {
       if (economy) {
         const data = economy.readCredits(username);
@@ -234,7 +232,6 @@ client.on('message', async (channel, userstate, message, self) => {
         await reply(channel, username, cmd, `Du hast ${bal} F$ 🦊`);
       }
 
-    // +top — Top 5 reichste Chatter
     } else if (cmd === 'top') {
       if (economy) {
         try {
@@ -253,12 +250,9 @@ client.on('message', async (channel, userstate, message, self) => {
             const text = all.map((d, i) => `${i + 1}. ${d.username}: ${d.credits} F$`).join(' | ');
             await reply(channel, username, cmd, `🏆 Top F$: ${text}`);
           }
-        } catch (e) {
-          writeLog('[bot] Fehler bei +top:', e.message);
-        }
+        } catch (e) { writeLog('[bot] Fehler bei +top:', e.message); }
       }
 
-    // +gift / +give / +spende <user> <betrag>
     } else if (cmd === 'gift' || cmd === 'give' || cmd === 'spende') {
       if (economy) {
         const target = (args[0] || '').replace('@', '').toLowerCase();
@@ -290,39 +284,44 @@ client.on('message', async (channel, userstate, message, self) => {
         await client.say(channel, `@${username} hat ${amount} F$ an @${target} verschenkt! 🦊`);
       }
 
-    // +uptime
     } else if (cmd === 'uptime') {
       await reply(channel, username, cmd, 'Bot läuft 🦊');
 
-    // +owner (nur Owner/Mods)
     } else if (cmd === 'owner' && (username === (botConfig.owner || '').toLowerCase() || isMod)) {
       await client.say(channel, `@${username} Owner-Befehl ausgeführt`);
     }
 
-  } catch (e) {
-    writeLog('[bot] Fehler bei Command:', e && e.stack ? e.stack : e);
-  }
+  } catch (e) { writeLog('[bot] Fehler bei Command:', e && e.stack ? e.stack : e); }
 });
 
 /* ============================================================
-   BIT-SPENDEN → F$ VERGEBEN
+   BIT-SPENDEN → F$ + BIT-SOUND
    ============================================================ */
 client.on('cheer', async (channel, userstate, message) => {
-  if (!economy) return;
-
   const username = (userstate.username || '').toLowerCase();
   const bits     = parseInt(userstate.bits || '0', 10);
 
   if (bits <= 0) return;
 
-  try {
-    const result = economy.onBitDonation({ username, bits });
-    if (result.delta > 0) {
-      writeLog(`[bot] Bit-Spende: ${username} spendete ${bits} Bits → +${result.delta} F$`);
-      await client.say(channel, `@${username} Danke für ${bits} Bits! 🎉 Du bekommst ${result.delta} F$ (×${result.factor}) 🦊`);
-    }
-  } catch (e) {
-    writeLog('[bot] Fehler bei Bit-Spende:', e.message);
+  writeLog(`[bot] Cheer: ${username} spendete ${bits} Bits`);
+
+  // ── F$ für Bits vergeben ──
+  if (economy) {
+    try {
+      const result = economy.onBitDonation({ username, bits });
+      if (result.delta > 0) {
+        await client.say(channel,
+          `@${username} Danke für ${bits} Bits! 🎉 Du bekommst ${result.delta} F$ (×${result.factor}) 🦊`
+        );
+      }
+    } catch (e) { writeLog('[bot] Fehler bei Bit F$:', e.message); }
+  }
+
+  // ── Bit-Sound suchen und abspielen ──
+  const bitSound = findBitSound(bits);
+  if (bitSound) {
+    writeLog(`[bot] Bit-Sound gefunden: ${bitSound.file} für ${bits} Bits`);
+    await broadcastSound(bitSound.file, bitSound.volume || 80);
   }
 });
 
