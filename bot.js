@@ -18,7 +18,7 @@ function writeLog(...parts) {
    BOT CONFIG
    ============================================================ */
 const cfgPath = path.join(ROOT, 'bot_config.json');
-let botConfig = { botName: 'stubBot', prefix: '+', owner: 'owner', channel: null };
+let botConfig = { botName: 'BottyFoxy', prefix: '+', owner: 'fairewelt', channel: 'fairewelt', whisperCommands: [] };
 if (fs.existsSync(cfgPath)) {
   try {
     botConfig = JSON.parse(fs.readFileSync(cfgPath, 'utf8'));
@@ -55,7 +55,6 @@ const useTmi = !!(TWITCH_BOT_TOKEN && TWITCH_BOT_USERNAME && CHANNEL);
    ============================================================ */
 if (!useTmi) {
   writeLog('INFO: Starte Bot im STUB-Modus (keine Twitch-Credentials gefunden).');
-
   setInterval(() => writeLog('[bot] STUB alive'), 60_000);
 
   try {
@@ -74,9 +73,7 @@ if (!useTmi) {
     fs.watchFile(cmdFile, { interval: 1000 }, (curr, prev) => {
       try {
         const data = JSON.parse(fs.readFileSync(cmdFile, 'utf8'));
-        if (data && data.last && data.last !== prev.mtimeMs) {
-          writeLog('[bot] Simulierter Befehl erkannt:', data.last);
-        }
+        if (data && data.last && data.last !== prev.mtimeMs) writeLog('[bot] Simulierter Befehl erkannt:', data.last);
       } catch (e) { /* ignore */ }
     });
   } catch (e) {
@@ -112,10 +109,27 @@ client.connect()
   .catch(err => { writeLog('[bot] Verbindung fehlgeschlagen:', err.message || err); process.exit(1); });
 
 /* ============================================================
+   ANTWORT HELPER — Whisper oder Chat je nach Config
+   ============================================================ */
+async function reply(channel, username, cmd, message) {
+  const whisperCmds = botConfig.whisperCommands || [];
+  if (whisperCmds.includes(cmd)) {
+    try {
+      await client.whisper(username, message);
+    } catch (e) {
+      // Whisper fehlgeschlagen → Fallback auf Chat
+      await client.say(channel, `@${username} ${message}`);
+    }
+  } else {
+    await client.say(channel, `@${username} ${message}`);
+  }
+}
+
+/* ============================================================
    DUELL-SYSTEM
    ============================================================ */
 try {
-  const duels  = require('./backend/duels');
+  const duels = require('./backend/duels');
 
   duels.attachBot({
     say:     (msg)       => client.say(CHANNEL, msg),
@@ -177,7 +191,7 @@ try {
 }
 
 /* ============================================================
-   CHAT-NACHRICHTEN → F$ VERGEBEN + COMMANDS
+   CHAT-NACHRICHTEN → F$ + COMMANDS
    ============================================================ */
 client.on('message', async (channel, userstate, message, self) => {
   if (self) return;
@@ -193,11 +207,11 @@ client.on('message', async (channel, userstate, message, self) => {
     try {
       economy.onChatMessage({ username, message, isAdmin, isMod, isVIP, isSub });
     } catch (e) {
-      writeLog('[bot] Economy Fehler bei onChatMessage:', e.message);
+      writeLog('[bot] Economy Fehler:', e.message);
     }
   }
 
-  // ── COMMANDS (Prefix: +) ──
+  // ── COMMANDS ──
   const prefix = botConfig.prefix || '+';
   if (!message || !message.startsWith(prefix)) return;
 
@@ -210,14 +224,14 @@ client.on('message', async (channel, userstate, message, self) => {
 
     // +ping
     if (cmd === 'ping') {
-      await client.say(channel, `@${username} pong 🦊`);
+      await reply(channel, username, cmd, 'pong 🦊');
 
     // +guthaben / +fd / +fuchsdollar
     } else if (cmd === 'guthaben' || cmd === 'fd' || cmd === 'fuchsdollar') {
       if (economy) {
         const data = economy.readCredits(username);
         const bal  = isAdmin ? '∞' : (data.credits || 0);
-        await client.say(channel, `@${username} Du hast ${bal} F$ 🦊`);
+        await reply(channel, username, cmd, `Du hast ${bal} F$ 🦊`);
       }
 
     // +top — Top 5 reichste Chatter
@@ -234,10 +248,10 @@ client.on('message', async (channel, userstate, message, self) => {
             .slice(0, 5);
 
           if (all.length === 0) {
-            await client.say(channel, 'Noch keine F$ Daten vorhanden.');
+            await reply(channel, username, cmd, 'Noch keine F$ Daten vorhanden.');
           } else {
             const text = all.map((d, i) => `${i + 1}. ${d.username}: ${d.credits} F$`).join(' | ');
-            await client.say(channel, `🏆 Top F$: ${text}`);
+            await reply(channel, username, cmd, `🏆 Top F$: ${text}`);
           }
         } catch (e) {
           writeLog('[bot] Fehler bei +top:', e.message);
@@ -251,7 +265,7 @@ client.on('message', async (channel, userstate, message, self) => {
         const amount = parseInt(args[1] || '0', 10);
 
         if (!target || amount <= 0) {
-          await client.say(channel, `@${username} Nutzung: +gift <User> <Betrag>`);
+          await reply(channel, username, cmd, 'Nutzung: +gift <User> <Betrag>');
           return;
         }
 
@@ -259,7 +273,7 @@ client.on('message', async (channel, userstate, message, self) => {
         const senderBal  = isAdmin ? economy.ADMIN_BALANCE : (senderData.credits || 0);
 
         if (!isAdmin && senderBal < amount) {
-          await client.say(channel, `@${username} Du hast nicht genug F$! Dein Guthaben: ${senderBal} F$`);
+          await reply(channel, username, cmd, `Nicht genug F$! Dein Guthaben: ${senderBal} F$`);
           return;
         }
 
@@ -278,7 +292,7 @@ client.on('message', async (channel, userstate, message, self) => {
 
     // +uptime
     } else if (cmd === 'uptime') {
-      await client.say(channel, `@${username} Bot läuft 🦊`);
+      await reply(channel, username, cmd, 'Bot läuft 🦊');
 
     // +owner (nur Owner/Mods)
     } else if (cmd === 'owner' && (username === (botConfig.owner || '').toLowerCase() || isMod)) {
@@ -303,12 +317,9 @@ client.on('cheer', async (channel, userstate, message) => {
 
   try {
     const result = economy.onBitDonation({ username, bits });
-
     if (result.delta > 0) {
       writeLog(`[bot] Bit-Spende: ${username} spendete ${bits} Bits → +${result.delta} F$`);
-      await client.say(channel,
-        `@${username} Danke für ${bits} Bits! 🎉 Du bekommst ${result.delta} F$ (×${result.factor}) 🦊`
-      );
+      await client.say(channel, `@${username} Danke für ${bits} Bits! 🎉 Du bekommst ${result.delta} F$ (×${result.factor}) 🦊`);
     }
   } catch (e) {
     writeLog('[bot] Fehler bei Bit-Spende:', e.message);
