@@ -1,0 +1,149 @@
+<div style="max-width: 1000px; margin: 0 auto;">
+
+  <div id="soundStatus" class="msg" style="text-align:center; margin-bottom:10px;"></div>
+
+  <!-- ── FoxChatPoints Sound hinzufügen ── -->
+  <div class="econ-section">
+    <div class="econ-title">Sound-Belohnung hinzufügen (FoxChatPoints)</div>
+    <div class="econ-info">
+      Gib einen Namen ein — die Belohnung wird automatisch bei Twitch angelegt!
+    </div>
+
+    <div class="econ-grid">
+      <div class="econ-col">
+        <div class="econ-row">
+          <label class="econ-label" for="rewardNameInput">Name der Belohnung</label>
+          <input type="text" id="rewardNameInput" class="econ-input"
+                 placeholder="z.B. WOW Sound" style="width:220px;">
+        </div>
+        <div class="econ-row">
+          <label class="econ-label" for="soundFileSelect">Sound-Datei</label>
+          <select id="soundFileSelect" class="econ-input" style="width:220px;">
+            <option value="">-- Bitte wählen --</option>
+          </select>
+        </div>
+      </div>
+      <div class="econ-col">
+        <div class="econ-row">
+          <label class="econ-label" for="rewardCostInput">Kosten (FoxChatPoints)</label>
+          <input type="number" id="rewardCostInput" class="econ-input"
+                 min="1" value="100" style="width:220px;">
+        </div>
+        <div class="econ-row">
+          <label class="econ-label" for="volumeInput">Lautstärke (%)</label>
+          <input type="number" id="volumeInput" class="econ-input"
+                 min="0" max="100" value="80" style="width:220px;">
+        </div>
+        <div class="econ-row">
+          <label class="econ-label">Vorschau</label>
+          <button class="btn-save" id="previewBtn" style="background:#444;">▶ Testen</button>
+        </div>
+      </div>
+    </div>
+    <div class="econ-save-wrapper">
+      <button class="btn-save" id="addSoundRewardBtn">Bei Twitch anlegen + speichern</button>
+    </div>
+  </div>
+
+  <!-- ── Bit-Sound hinzufügen ── -->
+  <div class="econ-section">
+    <div class="econ-title">Bit-Sound hinzufügen</div>
+    <div class="econ-info">
+      Definiere einen Bits-Bereich — wird dieser Bereich gecheer'd, spielt der Sound ab.
+      Beispiel: 1 bis 99 Bits → WOW Sound.
+    </div>
+
+    <div class="econ-grid">
+      <div class="econ-col">
+        <div class="econ-row">
+          <label class="econ-label" for="bitFromInput">Von (Bits)</label>
+          <input type="number" id="bitFromInput" class="econ-input"
+                 min="1" value="1" style="width:220px;">
+        </div>
+        <div class="econ-row">
+          <label class="econ-label" for="bitToInput">Bis (Bits)</label>
+          <input type="number" id="bitToInput" class="econ-input"
+                 min="1" value="99" style="width:220px;">
+        </div>
+      </div>
+      <div class="econ-col">
+        <div class="econ-row">
+          <label class="econ-label" for="bitSoundSelect">Sound-Datei</label>
+          <select id="bitSoundSelect" class="econ-input" style="width:220px;">
+            <option value="">-- Bitte wählen --</option>
+          </select>
+        </div>
+        <div class="econ-row">
+          <label class="econ-label" for="bitVolumeInput">Lautstärke (%)</label>
+          <input type="number" id="bitVolumeInput" class="econ-input"
+                 min="0" max="100" value="80" style="width:220px;">
+        </div>
+        <div class="econ-row">
+          <label class="econ-label">Vorschau</label>
+          <button class="btn-save" id="previewBitBtn" style="background:#444;">▶ Testen</button>
+        </div>
+      </div>
+    </div>
+    <div class="econ-save-wrapper">
+      <button class="btn-save" id="addBitSoundBtn">Bit-Sound speichern</button>
+    </div>
+  </div>
+
+  <!-- ── Aktive Sound-Belohnungen (FoxChatPoints) ── -->
+  <div class="econ-section">
+    <div class="econ-title">Aktive Sound-Belohnungen (FoxChatPoints)</div>
+    <div class="econ-info">Änderungen werden direkt bei Twitch gesetzt.</div>
+
+    <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:0.9em;">
+      <thead>
+        <tr style="border-bottom:1px solid #444;">
+          <th style="padding:8px; text-align:left;">Twitch-Belohnungsname</th>
+          <th style="padding:8px; text-align:left;">Sound-Datei</th>
+          <th style="padding:8px; text-align:left;">Lautstärke</th>
+          <th style="padding:8px; text-align:left;">Kosten (FCP)</th>
+          <th style="padding:8px; text-align:left;">Vorschau</th>
+          <th style="padding:8px; text-align:left;">Aktion</th>
+        </tr>
+      </thead>
+      <tbody id="soundRewardTable">
+        <tr><td colspan="6" style="padding:12px; color:#888; text-align:center;">Wird geladen…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Aktive Bit-Sounds ── -->
+  <div class="econ-section">
+    <div class="econ-title">Aktive Bit-Sounds</div>
+    <div class="econ-info">
+      Wenn jemand Bits in diesem Bereich cheert, wird der Sound abgespielt.
+    </div>
+
+    <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:0.9em;">
+      <thead>
+        <tr style="border-bottom:1px solid #444;">
+          <th style="padding:8px; text-align:left;">Von (Bits)</th>
+          <th style="padding:8px; text-align:left;">Bis (Bits)</th>
+          <th style="padding:8px; text-align:left;">Sound-Datei</th>
+          <th style="padding:8px; text-align:left;">Lautstärke</th>
+          <th style="padding:8px; text-align:left;">Vorschau</th>
+          <th style="padding:8px; text-align:left;">Aktion</th>
+        </tr>
+      </thead>
+      <tbody id="bitSoundTable">
+        <tr><td colspan="6" style="padding:12px; color:#888; text-align:center;">Wird geladen…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Verfügbare Sound-Dateien ── -->
+  <div class="econ-section">
+    <div class="econ-title">Verfügbare Sound-Dateien</div>
+    <div class="econ-info">
+      Diese Dateien liegen in <code>public/sounds/</code> — klicken zum Auswählen.
+    </div>
+    <div id="soundFileList" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+      Wird geladen…
+    </div>
+  </div>
+
+</div>

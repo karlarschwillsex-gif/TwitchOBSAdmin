@@ -1,0 +1,167 @@
+<div style="max-width: 1000px; margin: 0 auto;">
+
+  <div id="duelStatus" class="msg" style="text-align:center; margin-bottom:10px;"></div>
+
+  <!-- ── Einstellungen ── -->
+  <div class="econ-section">
+    <div class="econ-title">Duell-Einstellungen</div>
+    <div class="econ-grid">
+      <div class="econ-col">
+        <div class="econ-row">
+          <label class="econ-label">Minimaler Einsatz (F$)</label>
+          <div class="num-wrap"><button class="num-btn" data-target="duelMinBet" data-step="10" data-dir="-">−</button><input type="number" id="duelMinBet" class="econ-input num-input" min="1"><button class="num-btn" data-target="duelMinBet" data-step="10" data-dir="+">+</button><span class="save-check" id="check_duelMinBet"></span></div>
+        </div>
+        <div class="econ-row">
+          <label class="econ-label">Maximaler Einsatz (F$)</label>
+          <div class="num-wrap"><button class="num-btn" data-target="duelMaxBet" data-step="1000" data-dir="-">−</button><input type="number" id="duelMaxBet" class="econ-input num-input" min="1"><button class="num-btn" data-target="duelMaxBet" data-step="1000" data-dir="+">+</button><span class="save-check" id="check_duelMaxBet"></span></div>
+        </div>
+        <div class="econ-row">
+          <label class="econ-label">Cooldown (Sek.)</label>
+          <div class="num-wrap"><button class="num-btn" data-target="duelCooldown" data-step="5" data-dir="-">−</button><input type="number" id="duelCooldown" class="econ-input num-input" min="0"><button class="num-btn" data-target="duelCooldown" data-step="5" data-dir="+">+</button><span class="save-check" id="check_duelCooldown"></span></div>
+        </div>
+      </div>
+      <div class="econ-col">
+        <div class="econ-row">
+          <label class="econ-label">Accept-Timeout (Sek.)</label>
+          <div class="num-wrap"><button class="num-btn" data-target="duelTimeout" data-step="5" data-dir="-">−</button><input type="number" id="duelTimeout" class="econ-input num-input" min="5"><button class="num-btn" data-target="duelTimeout" data-step="5" data-dir="+">+</button><span class="save-check" id="check_duelTimeout"></span></div>
+        </div>
+        <div class="econ-row">
+          <label class="econ-label">Max. gleichzeitige Duelle</label>
+          <div class="num-wrap"><button class="num-btn" data-target="duelMaxActive" data-step="1" data-dir="-">−</button><input type="number" id="duelMaxActive" class="econ-input num-input" min="1" max="10"><button class="num-btn" data-target="duelMaxActive" data-step="1" data-dir="+">+</button><span class="save-check" id="check_duelMaxActive"></span></div>
+        </div>
+        <div class="econ-row">
+          <label class="econ-label">SUB Gewinn-Bonus (×)<br><span style="font-size:0.8em;opacity:0.6;">Sieger-SUB bekommt das ×-fache</span></label>
+          <div class="num-wrap"><button class="num-btn" data-target="duelSubBonus" data-step="0.1" data-dir="-">−</button><input type="number" id="duelSubBonus" class="econ-input num-input" min="1" step="0.1"><button class="num-btn" data-target="duelSubBonus" data-step="0.1" data-dir="+">+</button><span class="save-check" id="check_duelSubBonus"></span></div>
+        </div>
+      </div>
+    </div>
+    <div class="econ-save-wrapper">
+      <button class="btn-save" id="saveDuelSettingsBtn">Einstellungen speichern</button>
+    </div>
+  </div>
+
+  <!-- ── Rollen-Boni ── -->
+  <div class="econ-section">
+    <div class="econ-title">Rollen-Boni</div>
+
+    <div style="background:#1a1a2e; border:1px solid #333; border-radius:6px; padding:12px; margin-bottom:14px; font-size:0.88em; line-height:1.8;">
+      <div><strong style="color:#9f9;">Siegchance % </strong> — Jeder startet bei 50%. Dieser Wert wird in Prozent dazu addiert.<br>
+      <span style="opacity:0.7;">Beispiel: VIP = 10 → VIP hat 60% Siegchance. Beide Werte werden normalisiert damit sie zusammen 100% ergeben.</span></div>
+      <div style="margin-top:6px;"><strong style="color:#f4a261;">Verlier-Bonus ×</strong> — Wenn dein <em>Gegner</em> diese Rolle hat und du gewinnst, bekommst du mehr F$.<br>
+      <span style="opacity:0.7;">Beispiel: MOD Verlier-Bonus = 2.0 → Du gewinnst das Doppelte deines Einsatzes wenn du gegen einen MOD gewinnst.</span></div>
+    </div>
+
+    <table style="width:100%; border-collapse:collapse; font-size:0.9em;">
+      <thead>
+        <tr style="border-bottom:1px solid #444;">
+          <th style="padding:8px; text-align:left; width:90px;">Rolle</th>
+          <th style="padding:8px; text-align:left;">Siegchance + <span style="opacity:0.5; font-weight:normal; font-size:0.85em;">(z.B. 10 = +10%)</span></th>
+          <th style="padding:8px; text-align:left;">Verlier-Bonus × <span style="opacity:0.5; font-weight:normal; font-size:0.85em;">(z.B. 2.0 = doppelter Gewinn)</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;">👑 Admin</td>
+          <td style="padding:8px;">
+            <div class="num-wrap"><button class="num-btn" data-target="duelAdminWin" data-step="1" data-dir="-">−</button><input type="number" id="duelAdminWin" class="econ-input num-input" min="0" max="49" style="width:70px;"><button class="num-btn" data-target="duelAdminWin" data-step="1" data-dir="+">+</button><span style="opacity:0.6; margin-left:4px;">%</span><span class="save-check" id="check_duelAdminWin"></span></div>
+          </td>
+          <td style="padding:8px;">
+            <div class="num-wrap"><button class="num-btn" data-target="duelAdminLose" data-step="0.1" data-dir="-">−</button><input type="number" id="duelAdminLose" class="econ-input num-input" min="1" step="0.1" style="width:70px;"><button class="num-btn" data-target="duelAdminLose" data-step="0.1" data-dir="+">+</button><span class="save-check" id="check_duelAdminLose"></span></div>
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;">🛡 MOD</td>
+          <td style="padding:8px;">
+            <div class="num-wrap"><button class="num-btn" data-target="duelModWin" data-step="1" data-dir="-">−</button><input type="number" id="duelModWin" class="econ-input num-input" min="0" max="49" style="width:70px;"><button class="num-btn" data-target="duelModWin" data-step="1" data-dir="+">+</button><span style="opacity:0.6; margin-left:4px;">%</span><span class="save-check" id="check_duelModWin"></span></div>
+          </td>
+          <td style="padding:8px;">
+            <div class="num-wrap"><button class="num-btn" data-target="duelModLose" data-step="0.1" data-dir="-">−</button><input type="number" id="duelModLose" class="econ-input num-input" min="1" step="0.1" style="width:70px;"><button class="num-btn" data-target="duelModLose" data-step="0.1" data-dir="+">+</button><span class="save-check" id="check_duelModLose"></span></div>
+          </td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;">💎 VIP</td>
+          <td style="padding:8px;">
+            <div class="num-wrap"><button class="num-btn" data-target="duelVipWin" data-step="1" data-dir="-">−</button><input type="number" id="duelVipWin" class="econ-input num-input" min="0" max="49" style="width:70px;"><button class="num-btn" data-target="duelVipWin" data-step="1" data-dir="+">+</button><span style="opacity:0.6; margin-left:4px;">%</span><span class="save-check" id="check_duelVipWin"></span></div>
+          </td>
+          <td style="padding:8px;">
+            <div class="num-wrap"><button class="num-btn" data-target="duelVipLose" data-step="0.1" data-dir="-">−</button><input type="number" id="duelVipLose" class="econ-input num-input" min="1" step="0.1" style="width:70px;"><button class="num-btn" data-target="duelVipLose" data-step="0.1" data-dir="+">+</button><span class="save-check" id="check_duelVipLose"></span></div>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:8px;">⭐ SUB</td>
+          <td style="padding:8px;">
+            <div class="num-wrap"><button class="num-btn" data-target="duelSubWin" data-step="1" data-dir="-">−</button><input type="number" id="duelSubWin" class="econ-input num-input" min="0" max="49" style="width:70px;"><button class="num-btn" data-target="duelSubWin" data-step="1" data-dir="+">+</button><span style="opacity:0.6; margin-left:4px;">%</span><span class="save-check" id="check_duelSubWin"></span></div>
+          </td>
+          <td style="padding:8px; opacity:0.4; font-size:0.85em;">— SUB Bonus gilt nur für den Sieger (oben einstellbar)</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="econ-save-wrapper">
+      <button class="btn-save" id="saveDuelBoniBtn">Boni speichern</button>
+    </div>
+  </div>
+
+  <!-- ── Laufende Duelle ── -->
+  <div class="econ-section">
+    <div class="econ-title">
+      Laufende Duelle
+      <button id="abortAllDuelsBtn" style="margin-left:12px;background:var(--danger);border:none;color:#eee;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:0.85em;">Alle abbrechen</button>
+      <button id="refreshDuelsBtn" style="margin-left:8px;background:#444;border:none;color:#eee;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:0.85em;">🔄 Aktualisieren</button>
+    </div>
+    <div id="activeDuelsList" style="margin-top:10px;color:#888;font-size:0.9em;">Wird geladen…</div>
+  </div>
+
+  <!-- ── Stats ── -->
+  <div class="econ-section">
+    <div class="econ-title">
+      Duell-Statistiken
+      <button id="resetDuelStatsBtn" style="margin-left:12px;background:var(--danger);border:none;color:#eee;padding:4px 12px;border-radius:4px;cursor:pointer;font-size:0.85em;">Stats löschen</button>
+    </div>
+    <div class="econ-info">Nach dem Löschen werden nur noch aktuelle Duelle angezeigt.</div>
+    <table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:0.9em;">
+      <thead>
+        <tr style="border-bottom:1px solid #444;">
+          <th style="padding:8px;text-align:left;">User</th>
+          <th style="padding:8px;text-align:center;">Siege</th>
+          <th style="padding:8px;text-align:center;">Niederlagen</th>
+          <th style="padding:8px;text-align:center;">Unentschieden</th>
+          <th style="padding:8px;text-align:center;">Gewonnen (F$)</th>
+          <th style="padding:8px;text-align:center;">Verloren (F$)</th>
+          <th style="padding:8px;text-align:center;">Bilanz</th>
+        </tr>
+      </thead>
+      <tbody id="duelStatsBody">
+        <tr><td colspan="7" style="padding:12px;color:#888;text-align:center;">Wird geladen…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Chat-Befehle ── -->
+  <div class="econ-section">
+    <div class="econ-title">Chat-Befehle</div>
+    <table style="width:100%;border-collapse:collapse;font-size:0.88em;">
+      <thead><tr style="border-bottom:1px solid #444;"><th style="padding:8px;text-align:left;width:220px;">Befehl</th><th style="padding:8px;text-align:left;">Beschreibung</th></tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #333;"><td style="padding:8px;"><code>+duel &lt;betrag&gt;</code></td><td style="padding:8px;">Offenes Duell — erster der +j schreibt nimmt teil</td></tr>
+        <tr style="border-bottom:1px solid #333;"><td style="padding:8px;"><code>+duel &lt;betrag&gt; @user</code></td><td style="padding:8px;">Direktes Duell gegen einen bestimmten User</td></tr>
+        <tr style="border-bottom:1px solid #333;"><td style="padding:8px;"><code>+j</code></td><td style="padding:8px;">Duell annehmen</td></tr>
+        <tr style="border-bottom:1px solid #333;"><td style="padding:8px;"><code>+n</code></td><td style="padding:8px;">Duell ablehnen</td></tr>
+        <tr><td style="padding:8px;"><code>+duelstats</code></td><td style="padding:8px;">Eigene Duell-Statistik im Chat anzeigen</td></tr>
+      </tbody>
+    </table>
+    <div class="econ-info" style="margin-top:8px;">
+      👑 Admin kann nur herausfordern, nicht angenommen werden.<br>
+      🤝 Unentschieden möglich wenn beide die gleiche Rolle haben (15% Chance) — Einsatz zurück.<br>
+      ⬆️ Gewinn wird immer aufgerundet.
+    </div>
+  </div>
+
+  <style>
+    .num-wrap { display:flex; align-items:center; gap:4px; }
+    .num-btn  { background:#444; border:1px solid #555; color:#eee; width:28px; height:28px; border-radius:4px; cursor:pointer; font-size:1em; line-height:1; flex-shrink:0; }
+    .num-btn:hover { background:#666; }
+    .num-input { width:90px !important; text-align:center; }
+    .save-check { color:#9f9; font-size:1.1em; margin-left:4px; min-width:20px; }
+  </style>
+
+</div>
