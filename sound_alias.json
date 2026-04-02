@@ -1,0 +1,38 @@
+{
+  "wow": {
+    "file": "wow.mp3",
+    "volume": 1
+  },
+  "bonk": {
+    "file": "bonk.mp3",
+    "volume": 1
+  },
+  "ganix": {
+    "file": "ganix.mp3",
+    "volume": 1
+  },
+  "bier": {
+    "file": "bier.mp3",
+    "volume": 1
+  },
+  "applause": {
+    "file": "Applause.mp3",
+    "volume": 1
+  },
+  "dumm": {
+    "file": "dumm.mp3",
+    "volume": 1
+  },
+  "diggamussdas": {
+    "file": "mussdas.mp3",
+    "volume": 1
+  },
+  "neindochoh": {
+    "file": "nein-doch-ohh.mp3",
+    "volume": 1
+  },
+  "wasistlos": {
+    "file": "wasistlos.mp3",
+    "volume": 1
+  }
+}
