@@ -34,14 +34,6 @@ window.onload = () => {
 };
 
 // ---------------------------------------------------------
-//  HTML DATEI FÜR TAB
-// ---------------------------------------------------------
-function getTabFile(tabId) {
-  if (tabId === 'credits-editor') return 'credits-admin.html';
-  return tabId + '.html';
-}
-
-// ---------------------------------------------------------
 //  TAB SYSTEM
 // ---------------------------------------------------------
 async function setupTabs() {
@@ -60,9 +52,11 @@ async function setupTabs() {
       if (target) {
         target.style.display = "block";
 
+
         if (target.innerHTML.trim() === "") {
           try {
-            const res = await fetch(getTabFile(tabId));
+            const htmlFile = tabId === 'credits-editor' ? 'credits-admin.html' : `${tabId}.html`;
+            const res = await fetch(htmlFile);
             if (res.ok) {
               target.innerHTML = await res.text();
 
@@ -70,7 +64,8 @@ async function setupTabs() {
               if (tabId === 'sound'         && typeof loadSounds       === 'function') loadSounds();
               if (tabId === 'duel'          && typeof loadDuels        === 'function') loadDuels();
               if (tabId === 'befehle'       && typeof initCmdAdmin     === 'function') initCmdAdmin();
-              if (tabId === 'overlay-admin' && typeof initOverlayAdmin === 'function') initOverlayAdmin();
+              if (tabId === 'credits-editor' && typeof initCreditsAdmin === 'function') initCreditsAdmin();
+        if (tabId === 'overlay-admin' && typeof initOverlayAdmin === 'function') initOverlayAdmin();
               if (tabId === 'security'      && typeof initSecurity     === 'function') initSecurity();
             }
           } catch (e) {
@@ -216,14 +211,16 @@ function openTab(tabId) {
 
   const target = document.getElementById(tabId);
   if (target && target.innerHTML.trim() === "") {
-    fetch(getTabFile(tabId))
+    fetch(`${tabId}.html`)
       .then(res => res.ok ? res.text() : "")
       .then(html => {
         target.innerHTML = html;
+
         if (tabId === 'economy'       && typeof initEconomy     === 'function') initEconomy();
         if (tabId === 'sound'         && typeof loadSounds       === 'function') loadSounds();
-        if (tabId === 'duel'          && typeof loadDuels        === 'function') loadDuels();
+              if (tabId === 'duel'          && typeof loadDuels        === 'function') loadDuels();
         if (tabId === 'befehle'       && typeof initCmdAdmin     === 'function') initCmdAdmin();
+        if (tabId === 'credits-editor' && typeof initCreditsAdmin === 'function') initCreditsAdmin();
         if (tabId === 'overlay-admin' && typeof initOverlayAdmin === 'function') initOverlayAdmin();
         if (tabId === 'security'      && typeof initSecurity     === 'function') initSecurity();
       });
