@@ -1,93 +1,90 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <div class="econ-section" style="text-align:center;">
-    <div class="econ-title">Oberlay Center<br><br></div>
-  <link rel="stylesheet" href="admin.css">
-</head>
+<div style="max-width: 1000px; margin: 0 auto;">
 
-<body>
+  <div id="camStatus" class="msg" style="text-align:center; margin-bottom:10px;"></div>
 
-<div class="status" id="status"></div>
-
-<div class="econ-col" style="max-width: 650px; margin: 0 auto; font-size: 0.9em;">
-
-  <!-- Neuen OBS-Filter hinzufügen -->
-  <div class="econ-section" style="text-align:center;">
-    <div class="econ-title">Neuen OBS‑Filter hinzufügen</div>
-
-    <div class="econ-row" style="justify-content:center;">
-      <label class="econ-label" style="width:150px;">Filtername</label>
-      <input type="text" id="obsFilterName" class="econ-input" style="width:200px;">
+  <!-- ── CamFilter Belohnung hinzufügen ── -->
+  <div class="econ-section">
+    <div class="econ-title">CamFilter-Belohnung hinzufügen</div>
+    <div class="econ-info">
+      Wähle einen OBS-Filter aus — die Belohnung wird automatisch bei Twitch angelegt mit <code>[Cam]</code>!
     </div>
 
-    <div class="econ-row" style="justify-content:center;">
-      <label class="econ-label" style="width:150px;">Kosten</label>
-      <input type="number" id="newFilterCost" class="econ-input"
-             value="300" style="width:200px;">
-    </div>
+    <div class="econ-grid">
+      <div class="econ-col">
+        <div class="econ-row">
+          <label class="econ-label" for="obsFilterSelect">OBS-Filter</label>
+          <select id="obsFilterSelect" class="econ-input" style="width:220px;">
+            <option value="">-- Wird geladen... --</option>
+          </select>
+        </div>
 
-    <div class="econ-row" style="justify-content:center;">
-      <label class="econ-label" style="width:150px;">Dauer (Sek.)</label>
-      <input type="number" id="newFilterDuration" class="econ-input"
-             value="5" style="width:200px;">
+        <div class="econ-row">
+          <label class="econ-label" for="filterCostInput">Kosten (FoxChatPoints)</label>
+          <input type="number" id="filterCostInput" class="econ-input"
+                 min="1" value="300" style="width:220px;">
+        </div>
+      </div>
+
+      <div class="econ-col">
+        <div class="econ-row">
+          <label class="econ-label" for="filterDurationInput">Dauer (Sekunden)</label>
+          <input type="number" id="filterDurationInput" class="econ-input"
+                 min="1" value="10" style="width:220px;">
+        </div>
+
+        <div class="econ-row">
+          <label class="econ-label">Vorschau</label>
+          <button class="btn-save" id="previewFilterBtn" style="background:#444;">
+            ▶ Filter testen
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="econ-save-wrapper">
-      <button class="btn-save" id="addObsFilterBtn">Filter hinzufügen</button>
+      <button class="btn-save" id="addCamFilterRewardBtn">Bei Twitch anlegen + speichern</button>
     </div>
   </div>
 
-  <!-- Camfilter verwalten -->
+  <!-- ── Aktive CamFilter-Belohnungen ── -->
   <div class="econ-section">
-    <div class="econ-title">Camfilter verwalten</div>
+    <div class="econ-title">Aktive CamFilter-Belohnungen</div>
+    <div class="econ-info">
+      Wenn ein Zuschauer eine dieser Belohnungen einlöst, wird der Filter für die eingestellte Dauer aktiviert.
+    </div>
 
-    <table style="width:100%; border-collapse: collapse; margin-top:10px; font-size:0.9em;">
+    <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:0.9em;">
       <thead>
         <tr style="border-bottom:1px solid #444;">
-          <th style="padding:6px;">Name</th>
-          <th style="padding:6px;">Datei</th>
-          <th style="padding:6px;">Kosten</th>
-          <th style="padding:6px;">Dauer (s)</th>
-          <th style="padding:6px;">Befehl</th>
-          <th style="padding:6px;">Aktion</th>
+          <th style="padding:8px; text-align:left;">Twitch-Belohnungsname</th>
+          <th style="padding:8px; text-align:left;">OBS-Filter</th>
+          <th style="padding:8px; text-align:left;">Dauer (s)</th>
+          <th style="padding:8px; text-align:left;">Kosten (FCP)</th>
+          <th style="padding:8px; text-align:left;">Vorschau</th>
+          <th style="padding:8px; text-align:left;">Aktion</th>
         </tr>
       </thead>
-      <tbody id="camFilterBody"></tbody>
+      <tbody id="camFilterRewardTable">
+        <tr><td colspan="6" style="padding:12px; color:#888; text-align:center;">Wird geladen…</td></tr>
+      </tbody>
     </table>
+  </div>
 
-    <div class="econ-save-wrapper" style="margin-top:20px;">
-      <button class="btn-save" id="saveCamFiltersBtn">Änderungen speichern</button>
+  <!-- ── Verfügbare OBS-Filter ── -->
+  <div class="econ-section">
+    <div class="econ-title">Verfügbare OBS-Filter (V_Cam)</div>
+    <div class="econ-info">
+      Diese Filter sind in OBS auf der V_Cam Quelle eingestellt.
+    </div>
+    <div id="obsFilterList" style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px;">
+      Wird geladen…
     </div>
   </div>
 
-  <!-- Banner verwalten -->
-  <div class="econ-section" style="text-align:center;">
+  <!-- ── Banner (später) ── -->
+  <div class="econ-section" style="opacity:0.5;">
     <div class="econ-title">Banner verwalten</div>
-
-    <div class="econ-row" style="justify-content:center;">
-      <label class="econ-label" style="width:150px;">Aktuelles Banner</label>
-      <img id="bannerPreview" src="/banner/banner.png"
-           style="width:200px; border:1px solid #333; border-radius:6px;">
-    </div>
-
-    <div class="econ-row" style="justify-content:center;">
-      <label class="econ-label" style="width:150px;">Neues Banner</label>
-      <input type="file" id="bannerUpload" class="econ-input" style="width:200px;">
-    </div>
-
-    <div class="econ-save-wrapper">
-      <button class="btn-save" id="saveBannerBtn">Banner speichern</button>
-    </div>
-
-    <div class="econ-save-wrapper">
-      <button class="btn-save" id="deleteBannerBtn" style="background:#b33;">Banner löschen</button>
-    </div>
+    <div class="econ-info">Wird später eingebaut.</div>
   </div>
 
 </div>
-
-<script src="overlay-admin.js"></script>
-</body>
-</html>

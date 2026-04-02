@@ -6,26 +6,12 @@
 
 <style>
   :root {
-    /* Layout-Optimierung für OBS */
     --stack-gap: 12px;
     --panel-bg: rgba(0,0,0,0.55);
     --panel-bg-strong: rgba(0,0,0,0.70);
     --fade-duration: 0.45s;
     --slide-duration: 0.45s;
-
     --font-main: 'Segoe UI', Tahoma, sans-serif;
-
-    /* Limits */
-    --limit-sound: 5;
-    --limit-filter: 3;
-    --limit-events: 8;
-    --limit-categories: 5;
-
-    /* Timeouts */
-    --timeout-banner: 8000;
-    --timeout-raid: 10000;
-    --timeout-credits: 6000;
-    --timeout-category: 6000;
   }
 
   body {
@@ -36,9 +22,6 @@
     background: transparent;
   }
 
-  /* ----------------------------------------------------
-     UNIVERSAL PANEL STYLE
-  ---------------------------------------------------- */
   .panel {
     background: var(--panel-bg);
     padding: 12px 18px;
@@ -57,9 +40,6 @@
     to   { opacity: 0; }
   }
 
-  /* ----------------------------------------------------
-     CREDITS (oben & unten)
-  ---------------------------------------------------- */
   #creditsTop, #creditsBottom {
     position: absolute;
     left: 50%;
@@ -89,9 +69,6 @@
     to   { opacity: 0; transform: translate(-50%, -20px); }
   }
 
-  /* ----------------------------------------------------
-     BANNER (unten)
-  ---------------------------------------------------- */
   #bannerSlot {
     position: absolute;
     bottom: 0;
@@ -105,10 +82,7 @@
     transform: translateY(100%);
   }
 
-  #bannerSlot img {
-    max-height: 70px;
-    max-width: 90%;
-  }
+  #bannerSlot img { max-height: 70px; max-width: 90%; }
 
   .banner-show { animation: bannerIn var(--slide-duration) forwards; }
   .banner-hide { animation: bannerOut var(--slide-duration) forwards; }
@@ -123,14 +97,7 @@
     to   { opacity: 0; transform: translateY(100%); }
   }
 
-  /* ----------------------------------------------------
-     STACKS (OBS-optimiert)
-  ---------------------------------------------------- */
-
-  #soundQueue,
-  #filterQueue,
-  #eventStack,
-  #categoryStack {
+  #soundQueue, #filterQueue, #eventStack, #categoryStack {
     position: absolute;
     display: flex;
     flex-direction: column;
@@ -138,15 +105,12 @@
     width: 320px;
   }
 
-  #soundQueue { top: 20px; right: 20px; }
-  #filterQueue { bottom: 140px; right: 20px; }
-  #eventStack { top: 20px; left: 20px; width: 420px; }
+  #soundQueue   { top: 20px; right: 20px; }
+  #filterQueue  { bottom: 140px; right: 20px; }
+  #eventStack   { top: 20px; left: 20px; width: 420px; }
   #categoryStack { top: 50%; right: 20px; transform: translateY(-50%); }
 
-  .soundItem,
-  .filterItem,
-  .eventItem,
-  .categoryItem {
+  .soundItem, .filterItem, .eventItem, .categoryItem {
     background: var(--panel-bg);
     padding: 12px 18px;
     border-radius: 6px;
@@ -154,16 +118,12 @@
     animation: fadeIn var(--fade-duration) forwards;
   }
 
-  /* Category Farben */
   .categoryItem.subscriber { border-left: 4px solid #ffd700; }
   .categoryItem.vip        { border-left: 4px solid #00eaff; }
   .categoryItem.moderator  { border-left: 4px solid #00ff62; }
   .categoryItem.cheerer    { border-left: 4px solid #ff00d4; }
   .categoryItem.topchatter { border-left: 4px solid #ffa200; }
 
-  /* ----------------------------------------------------
-     RAID SLOT
-  ---------------------------------------------------- */
   #raidSlot {
     position: absolute;
     top: 40%;
@@ -179,7 +139,6 @@
 
   .raid-show { animation: fadeIn var(--fade-duration) forwards; }
   .raid-hide { animation: fadeOut var(--fade-duration) forwards; }
-
 </style>
 </head>
 
@@ -194,243 +153,163 @@
   <!-- Banner unten -->
   <div id="bannerSlot"></div>
 
-  <!-- Sound Queue (rechts oben) -->
+  <!-- Sound Queue -->
   <div id="soundQueue"></div>
 
-  <!-- Filter Queue (rechts unten) -->
+  <!-- Filter Queue -->
   <div id="filterQueue"></div>
 
-  <!-- Event Stack (links oben) -->
+  <!-- Event Stack -->
   <div id="eventStack"></div>
 
-  <!-- Category Stack (rechts mittig) -->
+  <!-- Category Stack -->
   <div id="categoryStack"></div>
 
-  <!-- Raid Slot (zentral) -->
+  <!-- Raid Slot -->
   <div id="raidSlot"></div>
 
 <script>
-/* ----------------------------------------------------
-   WEBSOCKET 2.0 — stabil, auto-reconnect, OBS-optimiert
----------------------------------------------------- */
-
+/* ============================================================
+   WEBSOCKET
+   ============================================================ */
 let ws = null;
 let reconnectTimer = null;
 
 function connectWS() {
   const protocol = location.protocol === "https:" ? "wss://" : "ws://";
-  const host = location.hostname || "localhost";
+  const host     = location.hostname || "localhost";
 
-  ws = new WebSocket(`${protocol}${host}:3000/ws`);
+  ws = new WebSocket(`${protocol}${host}:3000`);
 
   ws.onopen = () => {
     console.log("[Overlay] WebSocket verbunden");
-    if (reconnectTimer) {
-      clearTimeout(reconnectTimer);
-      reconnectTimer = null;
-    }
+    if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   };
 
-  ws.onerror = () => {
-    console.warn("[Overlay] WS Fehler — Verbindung wird geschlossen");
-    ws.close();
-  };
+  ws.onerror = () => { ws.close(); };
 
   ws.onclose = () => {
-    console.warn("[Overlay] WS getrennt — neuer Versuch in 2s");
     reconnectTimer = setTimeout(connectWS, 2000);
   };
 
   ws.onmessage = (msg) => {
     let data = {};
-    try { data = JSON.parse(msg.data); }
-    catch { return; }
-
+    try { data = JSON.parse(msg.data); } catch { return; }
     handleEvent(data);
   };
 }
 
 connectWS();
 
-/* ----------------------------------------------------
-   EVENT ROUTER 2.0 — sauber, modular, erweiterbar
----------------------------------------------------- */
-
+/* ============================================================
+   EVENT ROUTER
+   ============================================================ */
 function handleEvent(data) {
   switch (data.type) {
-
-    /* SOUND */
-    case "sound:play":
-      return addSoundItem(data);
-
-    /* FILTER */
-    case "filter:apply":
-      return addFilterItem(data);
-
-    /* BANNER */
-    case "banner:show":
-      return showBanner(data);
-    case "banner:hide":
-      return hideBanner();
-
-    /* CREDITS */
-    case "credits:top":
-      return showCreditsTop(data.text);
-    case "credits:bottom":
-      return showCreditsBottom(data.text);
-    case "credits:clear":
-      return clearCredits();
-
-    /* RAID */
-    case "raid:start":
-      return showRaid(data);
-    case "raid:end":
-      return hideRaid();
-
-    /* EVENT STACK */
-    case "event":
-      return addEventItem(data);
-
-    /* CATEGORY STACK */
+    case "sound:play":              return addSoundItem(data);
+    case "filter:apply":            return addFilterItem(data);
+    case "banner:show":             return showBanner(data);
+    case "banner:hide":             return hideBanner();
+    case "credits:top":             return showCreditsTop(data.text);
+    case "credits:bottom":          return showCreditsBottom(data.text);
+    case "credits:clear":           return clearCredits();
+    case "raid:start":              return showRaid(data);
+    case "raid:end":                return hideRaid();
+    case "event":                   return addEventItem(data);
     case "category:subscriber":
     case "category:vip":
     case "category:moderator":
     case "category:cheerer":
-    case "category:topchatter":
-      return addCategoryItem(data);
-
-    default:
-      console.warn("[Overlay] Unbekanntes Event:", data);
+    case "category:topchatter":     return addCategoryItem(data);
+    default: console.warn("[Overlay] Unbekanntes Event:", data.type);
   }
 }
-</script>
 
-<script>
-/* ----------------------------------------------------
-   LIMITS & TIMEOUTS (Overlay-Logik)
----------------------------------------------------- */
-
-const LIMIT_SOUND      = 5;
-const LIMIT_FILTER     = 3;
-const LIMIT_EVENTS     = 8;
-const LIMIT_CATEGORIES = 5;
-
-const TIMEOUT_BANNER   = 8000;
-const TIMEOUT_RAID     = 10000;
-const TIMEOUT_CREDITS  = 6000;
-const TIMEOUT_CATEGORY = 6000;
-
-/* ----------------------------------------------------
-   SOUND QUEUE
----------------------------------------------------- */
+/* ============================================================
+   SOUND — nur visuelles Feedback (Audio läuft über OBS)
+   ============================================================ */
+const LIMIT_SOUND = 5;
 
 function addSoundItem(data) {
   const queue = document.getElementById("soundQueue");
+  while (queue.children.length >= LIMIT_SOUND) queue.removeChild(queue.firstChild);
 
-  while (queue.children.length >= LIMIT_SOUND) {
-    queue.removeChild(queue.firstChild);
-  }
-
-  const div = document.createElement("div");
-  div.className = "soundItem";
-  div.textContent = "🔊 " + (data.name || "Sound");
-
+  const div       = document.createElement("div");
+  div.className   = "soundItem";
+  div.textContent = "🔊 " + (data.name || data.file || "Sound");
   queue.appendChild(div);
-
   setTimeout(() => div.remove(), 4000);
 }
 
-/* ----------------------------------------------------
+/* ============================================================
    FILTER QUEUE
----------------------------------------------------- */
+   ============================================================ */
+const LIMIT_FILTER = 3;
 
 function addFilterItem(data) {
   const queue = document.getElementById("filterQueue");
-
-  while (queue.children.length >= LIMIT_FILTER) {
-    queue.removeChild(queue.firstChild);
-  }
-
-  const div = document.createElement("div");
-  div.className = "filterItem";
+  while (queue.children.length >= LIMIT_FILTER) queue.removeChild(queue.firstChild);
+  const div       = document.createElement("div");
+  div.className   = "filterItem";
   div.textContent = "🎥 " + (data.name || "Filter");
-
   queue.appendChild(div);
-
   setTimeout(() => div.remove(), 4000);
 }
 
-/* ----------------------------------------------------
+/* ============================================================
    EVENT STACK
----------------------------------------------------- */
+   ============================================================ */
+const LIMIT_EVENTS = 8;
 
 function addEventItem(data) {
   const stack = document.getElementById("eventStack");
-
-  while (stack.children.length >= LIMIT_EVENTS) {
-    stack.removeChild(stack.firstChild);
-  }
-
-  const div = document.createElement("div");
-  div.className = "eventItem";
+  while (stack.children.length >= LIMIT_EVENTS) stack.removeChild(stack.firstChild);
+  const div       = document.createElement("div");
+  div.className   = "eventItem";
   div.textContent = data.text || "";
-
   stack.appendChild(div);
-
   setTimeout(() => div.remove(), 6000);
 }
 
-/* ----------------------------------------------------
+/* ============================================================
    CATEGORY STACK
----------------------------------------------------- */
+   ============================================================ */
+const LIMIT_CATEGORIES = 5;
+const TIMEOUT_CATEGORY = 6000;
 
 function addCategoryItem(data) {
   const stack = document.getElementById("categoryStack");
+  while (stack.children.length >= LIMIT_CATEGORIES) stack.removeChild(stack.firstChild);
 
-  while (stack.children.length >= LIMIT_CATEGORIES) {
-    stack.removeChild(stack.firstChild);
-  }
-
-  const div = document.createElement("div");
+  const div     = document.createElement("div");
   div.className = "categoryItem " + (data.category || "");
 
   const labels = {
-    subscriber: "⭐ Subscriber",
-    vip: "👑 VIP",
-    moderator: "🛡 Moderator",
-    cheerer: "🎉 Cheerer",
-    topchatter: "💬 Top Chatter"
+    subscriber: "⭐ Subscriber", vip: "👑 VIP", moderator: "🛡 Moderator",
+    cheerer: "🎉 Cheerer", topchatter: "💬 Top Chatter"
   };
 
-  const label = labels[data.category] || "User";
-  const name  = data.username || "Unbekannt";
-
-  div.textContent = `${label}: ${name}`;
-
+  div.textContent = `${labels[data.category] || "User"}: ${data.username || "Unbekannt"}`;
   stack.appendChild(div);
-
   setTimeout(() => div.remove(), TIMEOUT_CATEGORY);
 }
 
-/* ----------------------------------------------------
+/* ============================================================
    BANNER
----------------------------------------------------- */
-
+   ============================================================ */
+const TIMEOUT_BANNER = 8000;
 let bannerTimeout = null;
 
 function showBanner(data) {
   const slot = document.getElementById("bannerSlot");
   slot.innerHTML = "";
-
   if (data.url) {
     const img = document.createElement("img");
-    img.src = data.url + "?cache=" + Date.now();
+    img.src   = data.url + "?cache=" + Date.now();
     slot.appendChild(img);
   }
-
   slot.classList.remove("banner-hide");
   slot.classList.add("banner-show");
-
   clearTimeout(bannerTimeout);
   bannerTimeout = setTimeout(hideBanner, TIMEOUT_BANNER);
 }
@@ -441,20 +320,17 @@ function hideBanner() {
   slot.classList.add("banner-hide");
 }
 
-/* ----------------------------------------------------
+/* ============================================================
    CREDITS
----------------------------------------------------- */
+   ============================================================ */
+const TIMEOUT_CREDITS = 6000;
 
 function showCreditsTop(text) {
   const el = document.getElementById("creditsTop");
   el.textContent = text || "";
   el.classList.remove("credits-hide");
   el.classList.add("credits-show");
-
-  setTimeout(() => {
-    el.classList.remove("credits-show");
-    el.classList.add("credits-hide");
-  }, TIMEOUT_CREDITS);
+  setTimeout(() => { el.classList.remove("credits-show"); el.classList.add("credits-hide"); }, TIMEOUT_CREDITS);
 }
 
 function showCreditsBottom(text) {
@@ -462,11 +338,7 @@ function showCreditsBottom(text) {
   el.textContent = text || "";
   el.classList.remove("credits-hide");
   el.classList.add("credits-show");
-
-  setTimeout(() => {
-    el.classList.remove("credits-show");
-    el.classList.add("credits-hide");
-  }, TIMEOUT_CREDITS);
+  setTimeout(() => { el.classList.remove("credits-show"); el.classList.add("credits-hide"); }, TIMEOUT_CREDITS);
 }
 
 function clearCredits() {
@@ -474,24 +346,18 @@ function clearCredits() {
   document.getElementById("creditsBottom").classList.add("credits-hide");
 }
 
-/* ----------------------------------------------------
+/* ============================================================
    RAID
----------------------------------------------------- */
-
+   ============================================================ */
+const TIMEOUT_RAID = 10000;
 let raidTimeout = null;
 
 function showRaid(data) {
-  const el = document.getElementById("raidSlot");
+  const el   = document.getElementById("raidSlot");
   const name = data.from || data.target || "dem Streamer";
-
-  el.innerHTML =
-    `Wir raiden jetzt zu <b>${name}</b><br>` +
-    `Es war toll mit euch und<br>` +
-    `habt bei <b>${name}</b> viel Spaß!`;
-
+  el.innerHTML = `Wir raiden jetzt zu <b>${name}</b><br>Es war toll mit euch und<br>habt bei <b>${name}</b> viel Spaß!`;
   el.classList.remove("raid-hide");
   el.classList.add("raid-show");
-
   clearTimeout(raidTimeout);
   raidTimeout = setTimeout(hideRaid, TIMEOUT_RAID);
 }
@@ -505,4 +371,3 @@ function hideRaid() {
 
 </body>
 </html>
-
