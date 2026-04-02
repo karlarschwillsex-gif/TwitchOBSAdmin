@@ -1,0 +1,28 @@
+{
+  "headline": "FaireWelt",
+  "subtitle": "Danke für einen wunderbaren Stream!",
+  "farewell": "Bis zum nächsten Mal 🦊",
+  "raidText": "Wir raiden heute @[Twitchname] — kommt alle mit!",
+  "raidTarget": "",
+  "recentRaidTargets": [],
+  "logo1": "",
+  "logo2": "",
+  "fontFamily": "Segoe UI",
+  "textColor": "#ffffff",
+  "fontSizeHeadline": 48,
+  "fontSizeSubtitle": 28,
+  "fontSizeCategory": 24,
+  "fontSizeNames": 20,
+  "shadowColor": "#000000",
+  "shadowBlur": 4,
+  "shadowOffset": 2,
+  "scrollSpeed": 0.5,
+  "categories": [
+    "Subscriber",
+    "VIP",
+    "Moderator",
+    "Cheerer",
+    "Top Chatters"
+  ],
+  "running": false
+}
