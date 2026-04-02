@@ -9,10 +9,12 @@ const WebSocket  = require('ws');
 const fetch      = require('node-fetch');
 const duels      = require('./backend/duels');
 const obsConn    = require('./backend/obs-connection');
+const creditsApi = require('./backend/credits_api.js');
 const { getVirtualCamFilters, setFilterState } = obsConn;
 const { router: eventsubRouter, registerEventSubs } = require('./backend/eventsub.js');
 
 const app  = express();
+app.use('/credits_api', creditsApi);
 const PORT = parseInt(process.env.PORT || '3000', 10);
 const ROOT = __dirname;
 
@@ -355,6 +357,20 @@ app.post('/api/admin/sound-rewards/delete-twitch', async (req, res) => {
    ============================================================ */
 app.get('/api/admin/bit-sounds',  (req, res) => res.json(safeReadJson(BIT_SOUNDS_FILE, [])));
 app.post('/api/admin/bit-sounds', (req, res) => res.json({ ok: safeWriteJson(BIT_SOUNDS_FILE, Array.isArray(req.body) ? req.body : []) }));
+
+/* ============================================================
+   COMMANDS API
+   ============================================================ */
+const COMMANDS_FILE = path.join(ROOT, 'data', 'commands.json');
+
+app.get('/api/admin/commands', (req, res) => {
+  res.json(safeReadJson(COMMANDS_FILE, []));
+});
+
+app.post('/api/admin/commands', (req, res) => {
+  const cmds = Array.isArray(req.body) ? req.body : [];
+  res.json({ ok: safeWriteJson(COMMANDS_FILE, cmds) });
+});
 
 /* ============================================================
    CREDITS API

@@ -8,7 +8,10 @@ LOGDIR="$SCRIPT_DIR/logs"
 PIDDIR="$LOGDIR/pids"
 mkdir -p "$LOGDIR" "$PIDDIR"
 
-# Helper zum Schreiben von PID-Dateien und Logs
+# Alte PID-Dateien löschen
+rm -f "$PIDDIR"/*.pid
+
+# Helper
 write_pid() {
   local name="$1"; local pid="$2"
   echo "$pid" > "$PIDDIR/$name.pid"
@@ -25,7 +28,7 @@ read_env_file() {
 
 echo "=== START $(date -u +"%Y-%m-%dT%H:%M:%SZ") ===" | tee -a "$LOGDIR/start.log"
 
-# Load root .env if present
+# Load root .env
 if [[ -f "$SCRIPT_DIR/.env" ]]; then
   echo "Lade .env" | tee -a "$LOGDIR/start.log"
   read_env_file "$SCRIPT_DIR/.env"
@@ -38,7 +41,7 @@ echo "Starte Cloudflare Tunnel..." | tee -a "$LOGDIR/start.log"
 nohup cloudflared tunnel run acdf5827-bd64-4be3-be18-d11a9dbee3dd > "$LOGDIR/cloudflared.log" 2>&1 &
 CLOUDFLARED_PID=$!
 write_pid "cloudflared" "$CLOUDFLARED_PID"
-sleep 2
+sleep 3
 echo "Cloudflare Tunnel läuft (PID $CLOUDFLARED_PID)" | tee -a "$LOGDIR/start.log"
 
 # Basic checks
@@ -58,23 +61,24 @@ echo "Starte server.js..." | tee -a "$LOGDIR/start.log"
 nohup "$NODE_BIN" server.js > "$LOGDIR/server.log" 2>&1 &
 SERVER_PID=$!
 write_pid "server" "$SERVER_PID"
-sleep 0.5
+sleep 2
 
 # Start eventsub
 echo "Starte eventsub.js..." | tee -a "$LOGDIR/start.log"
 nohup "$NODE_BIN" eventsub.js > "$LOGDIR/eventsub.log" 2>&1 &
 EVENTSUB_PID=$!
 write_pid "eventsub" "$EVENTSUB_PID"
-sleep 0.5
+sleep 2
 
 # Start bot
 echo "Starte bot.js..." | tee -a "$LOGDIR/start.log"
 nohup "$NODE_BIN" bot.js > "$LOGDIR/bot.log" 2>&1 &
 BOT_PID=$!
 write_pid "bot" "$BOT_PID"
-sleep 0.5
+sleep 2
 
-# Start credits
+# Start credits (optional)
+CREDITS_PID=""
 if [[ -d "$CREDITS_DIR" ]]; then
   if [[ -f "$CREDITS_DIR/.env" ]]; then
     echo "Lade twitch-credits/.env" | tee -a "$LOGDIR/start.log"
@@ -84,13 +88,12 @@ if [[ -d "$CREDITS_DIR" ]]; then
   nohup "$NODE_BIN" "$CREDITS_DIR/index.mjs" > "$LOGDIR/credits.log" 2>&1 &
   CREDITS_PID=$!
   write_pid "credits" "$CREDITS_PID"
-  sleep 0.5
+  sleep 1
 else
   echo "WARNUNG: twitch-credits Verzeichnis nicht gefunden, übersprungen." | tee -a "$LOGDIR/start.log"
-  CREDITS_PID=""
 fi
 
-# Prüfe Prozesse
+# Prüfe Prozesse (nur warnen, nicht abbrechen)
 check_pid_alive() {
   local pidfile="$1"; local name="$2"; local logfile="$3"
   if [[ -f "$pidfile" ]]; then
@@ -100,7 +103,7 @@ check_pid_alive() {
       return 0
     else
       echo "FEHLER: $name nicht mehr laufend. Log: $logfile" | tee -a "$LOGDIR/start.log"
-      tail -n 40 "$logfile" 2>/dev/null || true
+      tail -n 20 "$logfile" 2>/dev/null || true
       return 1
     fi
   else
@@ -109,17 +112,23 @@ check_pid_alive() {
   fi
 }
 
-check_pid_alive "$PIDDIR/server.pid" "server.js" "$LOGDIR/server.log" || exit 1
-check_pid_alive "$PIDDIR/eventsub.pid" "eventsub.js" "$LOGDIR/eventsub.log" || exit 1
-check_pid_alive "$PIDDIR/bot.pid" "bot.js" "$LOGDIR/bot.log" || exit 1
+check_pid_alive "$PIDDIR/server.pid"   "server.js"   "$LOGDIR/server.log"   || true
+check_pid_alive "$PIDDIR/eventsub.pid" "eventsub.js" "$LOGDIR/eventsub.log" || true
+check_pid_alive "$PIDDIR/bot.pid"      "bot.js"      "$LOGDIR/bot.log"      || true
 if [[ -n "$CREDITS_PID" ]]; then
-  check_pid_alive "$PIDDIR/credits.pid" "credits/index.mjs" "$LOGDIR/credits.log" || exit 1
+  check_pid_alive "$PIDDIR/credits.pid" "credits/index.mjs" "$LOGDIR/credits.log" || true
 fi
 
-# Warte bis Backend erreichbar
+# Warte bis Backend erreichbar (max 30 Sekunden)
 echo "Warte auf Backend (http://localhost:$PORT)..." | tee -a "$LOGDIR/start.log"
+WAIT=0
 until curl -sSf "http://localhost:$PORT/" >/dev/null 2>&1; do
-  sleep 0.5
+  sleep 1
+  WAIT=$((WAIT + 1))
+  if [[ $WAIT -ge 30 ]]; then
+    echo "WARNUNG: Backend nach 30s nicht erreichbar — starte Electron trotzdem." | tee -a "$LOGDIR/start.log"
+    break
+  fi
 done
 echo "Backend erreichbar." | tee -a "$LOGDIR/start.log"
 
@@ -130,11 +139,10 @@ if [[ -d "$ELECTRON_DIR" ]]; then
 
   npm start > "$LOGDIR/electron.log" 2>&1 &
   ELECTRON_PID=$!
-
   write_pid "electron" "$ELECTRON_PID"
   echo "Electron läuft (PID $ELECTRON_PID)" | tee -a "$LOGDIR/start.log"
 
-  sleep 0.5
+  sleep 1
   check_pid_alive "$PIDDIR/electron.pid" "electron" "$LOGDIR/electron.log" || true
 else
   echo "Electron-App Verzeichnis nicht gefunden, übersprungen." | tee -a "$LOGDIR/start.log"
@@ -148,4 +156,3 @@ for f in "$PIDDIR"/*.pid; do
   pid="$(cat "$f")"
   echo "$name: $pid" | tee -a "$LOGDIR/start.log"
 done
-
