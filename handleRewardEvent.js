@@ -1,47 +1,40 @@
 // /home/fynn/TwitchOBSAdmin/handleRewardEvent.js
-const fs   = require('fs');
-const path = require('path');
+const fs    = require('fs');
+const path  = require('path');
+const fetch = require('node-fetch');
 
-const ROOT              = __dirname;
-const LOGDIR            = path.join(ROOT, 'logs');
+const ROOT               = __dirname;
+const LOGDIR             = path.join(ROOT, 'logs');
 const SOUND_REWARDS_FILE = path.join(ROOT, 'data', 'sound_rewards.json');
+const CAM_REWARDS_FILE   = path.join(ROOT, 'data', 'cam_rewards.json');
+const SERVER_URL         = process.env.SERVER_URL || 'http://localhost:3000';
 
 if (!fs.existsSync(LOGDIR)) fs.mkdirSync(LOGDIR, { recursive: true });
 
 const logFile = path.join(LOGDIR, 'handleRewardEvent.log');
 function log(...args) {
   const line = `[${new Date().toISOString()}] ${args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ')}\n`;
-  try { fs.appendFileSync(logFile, line); } catch (e) { /* ignore */ }
+  try { fs.appendFileSync(logFile, line); } catch (e) { }
   console.log('[handleRewardEvent]', ...args);
 }
 
-// WebSocket-Broadcast Funktion — wird von server.js gesetzt
 let broadcastFn = null;
+function setBroadcast(fn) { broadcastFn = fn; }
 
-function setBroadcast(fn) {
-  broadcastFn = fn;
-}
-
-function broadcast(data) {
-  if (typeof broadcastFn === 'function') {
-    broadcastFn(data);
-  } else {
-    log('WARN: Kein Broadcast verfügbar');
-  }
-}
-
-// Sound-Rewards laden
 function loadSoundRewards() {
   try {
     if (!fs.existsSync(SOUND_REWARDS_FILE)) return [];
     return JSON.parse(fs.readFileSync(SOUND_REWARDS_FILE, 'utf8'));
-  } catch (e) {
-    log('Fehler beim Laden der Sound-Rewards:', e.message);
-    return [];
-  }
+  } catch (e) { return []; }
 }
 
-// Hauptfunktion
+function loadCamRewards() {
+  try {
+    if (!fs.existsSync(CAM_REWARDS_FILE)) return [];
+    return JSON.parse(fs.readFileSync(CAM_REWARDS_FILE, 'utf8'));
+  } catch (e) { return []; }
+}
+
 module.exports = async function handleRewardEvent(event) {
   try {
     const type        = event?.subscription?.type || 'unknown';
@@ -60,26 +53,61 @@ module.exports = async function handleRewardEvent(event) {
       return true;
     }
 
-    // Sound-Zuordnung suchen
-    const rewards = loadSoundRewards();
-    const match   = rewards.find(r =>
+    // ── Sound-Reward prüfen ──
+    const soundRewards = loadSoundRewards();
+    const soundMatch   = soundRewards.find(r =>
       r.rewardName.toLowerCase() === rewardTitle.toLowerCase()
     );
 
-    if (match) {
-      log(`Sound gefunden: "${match.file}" für Belohnung "${rewardTitle}"`);
-      broadcast({
-        type:   'sound:play',
-        file:   match.file,
-        volume: (match.volume || 80) / 100,
-        name:   rewardTitle,
-        user:   userLogin
-      });
-    } else {
-      log(`Keine Sound-Zuordnung für Belohnung: "${rewardTitle}"`);
+    if (soundMatch) {
+      log(`Sound-Reward gefunden: "${soundMatch.file}" für "${rewardTitle}"`);
+      try {
+        const res  = await fetch(`${SERVER_URL}/api/admin/play-sound`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            file:   soundMatch.file,
+            volume: (soundMatch.volume || 80) / 100,
+            name:   rewardTitle,
+            user:   userLogin
+          })
+        });
+        const data = await res.json();
+        log(`Sound abgespielt: ${soundMatch.file} (${data.method})`);
+      } catch (e) {
+        log('Sound HTTP-Call fehlgeschlagen:', e.message);
+      }
+      return true;
     }
 
+    // ── CamFilter-Reward prüfen ──
+    const camRewards = loadCamRewards();
+    const camMatch   = camRewards.find(r =>
+      r.rewardName.toLowerCase() === rewardTitle.toLowerCase()
+    );
+
+    if (camMatch) {
+      log(`CamFilter-Reward gefunden: "${camMatch.filterName}" für "${rewardTitle}"`);
+      try {
+        const res  = await fetch(`${SERVER_URL}/api/admin/cam-filter/trigger`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({
+            filterName: camMatch.filterName,
+            duration:   camMatch.duration || 10
+          })
+        });
+        const data = await res.json();
+        log(`CamFilter aktiviert: ${camMatch.filterName} für ${camMatch.duration}s`);
+      } catch (e) {
+        log('CamFilter HTTP-Call fehlgeschlagen:', e.message);
+      }
+      return true;
+    }
+
+    log(`Keine Zuordnung für Belohnung: "${rewardTitle}"`);
     return true;
+
   } catch (err) {
     log('Fehler:', err && err.stack ? err.stack : err);
     throw err;

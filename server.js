@@ -8,10 +8,9 @@ const http       = require('http');
 const WebSocket  = require('ws');
 const fetch      = require('node-fetch');
 const duels      = require('./backend/duels');
-const { getVirtualCamFilters } = require('./backend/obs-connection');
+const obsConn    = require('./backend/obs-connection');
+const { getVirtualCamFilters, setFilterState } = obsConn;
 const { router: eventsubRouter, registerEventSubs } = require('./backend/eventsub.js');
-const handleRewardEvent = require('./handleRewardEvent.js');
-const twitchRewards     = require('./backend/twitchRewards.js');
 
 const app  = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
@@ -28,7 +27,7 @@ wss.on('connection', (ws) => {
   wsClients.add(ws);
   console.log('[ws] Client verbunden, gesamt:', wsClients.size);
   ws.on('close', () => { wsClients.delete(ws); });
-  ws.on('error', (err) => { wsClients.delete(ws); });
+  ws.on('error', () => { wsClients.delete(ws); });
 });
 
 function broadcast(data) {
@@ -39,8 +38,6 @@ function broadcast(data) {
     }
   });
 }
-
-handleRewardEvent.setBroadcast(broadcast);
 
 /* ============================================================
    RAW BODY FÜR EVENTSUB
@@ -70,6 +67,7 @@ const ECONOMY_FILE       = path.join(ROOT, 'data', 'economy.json');
 const CREDITS_DIR        = path.join(ROOT, 'data', 'credits');
 const SOUND_REWARDS_FILE = path.join(ROOT, 'data', 'sound_rewards.json');
 const BIT_SOUNDS_FILE    = path.join(ROOT, 'data', 'bit_sounds.json');
+const CAM_REWARDS_FILE   = path.join(ROOT, 'data', 'cam_rewards.json');
 const SOUNDS_DIR         = path.join(ROOT, 'public', 'sounds');
 
 /* ============================================================
@@ -173,6 +171,122 @@ app.post('/api/overlay/broadcast', (req, res) => {
 });
 
 /* ============================================================
+   SOUND ABSPIELEN
+   ============================================================ */
+app.post('/api/admin/play-sound', async (req, res) => {
+  const { file, volume, name, user } = req.body || {};
+  if (!file) return res.status(400).json({ ok: false, error: 'file fehlt' });
+
+  console.log(`[server] Sound abspielen: ${file} für ${user}`);
+
+  broadcast({ type: 'sound:play', file, volume: volume || 0.8, name: name || file, user });
+
+  try {
+    const ok = await obsConn.playSound(file, volume || 0.8);
+    return res.json({ ok: true, method: ok ? 'obs' : 'broadcast' });
+  } catch (e) {
+    return res.json({ ok: true, method: 'broadcast', error: e.message });
+  }
+});
+
+/* ============================================================
+   CAM-FILTER TRIGGERN
+   ============================================================ */
+app.post('/api/admin/cam-filter/trigger', async (req, res) => {
+  const { filterName, duration } = req.body || {};
+  if (!filterName) return res.status(400).json({ ok: false, error: 'filterName fehlt' });
+
+  const durationMs = (Number(duration) || 10) * 1000;
+  console.log(`[server] CamFilter: ${filterName} für ${duration}s`);
+
+  try {
+    // Filter aktivieren
+    await setFilterState(filterName, true);
+
+    // Visuelles Feedback ans Overlay
+    broadcast({ type: 'filter:apply', name: filterName, duration: durationMs });
+
+    // Nach X Sekunden deaktivieren
+    setTimeout(async () => {
+      try {
+        await setFilterState(filterName, false);
+        console.log(`[server] CamFilter deaktiviert: ${filterName}`);
+      } catch (e) {
+        console.error('[server] Filter deaktivieren Fehler:', e.message);
+      }
+    }, durationMs);
+
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[server] cam-filter/trigger Fehler:', e.message);
+    res.json({ ok: false, error: e.message });
+  }
+});
+
+/* ============================================================
+   CAM-REWARDS API
+   ============================================================ */
+app.get('/api/admin/cam-rewards', (req, res) => {
+  res.json(safeReadJson(CAM_REWARDS_FILE, []));
+});
+
+app.post('/api/admin/cam-rewards', (req, res) => {
+  const rewards = Array.isArray(req.body) ? req.body : [];
+  res.json({ ok: safeWriteJson(CAM_REWARDS_FILE, rewards) });
+});
+
+app.post('/api/admin/cam-rewards/create', async (req, res) => {
+  const { filterName, cost, duration } = req.body || {};
+  if (!filterName) return res.status(400).json({ ok: false, error: 'filterName fehlt' });
+
+  const rewardName = `${filterName} [Cam]`;
+
+  try {
+    const twitchRewards = require('./backend/twitchRewards.js');
+    const reward = await twitchRewards.createReward({
+      title:                  rewardName,
+      cost:                   Number(cost) || 300,
+      is_enabled:             true,
+      is_user_input_required: false
+    });
+
+    const rewards = safeReadJson(CAM_REWARDS_FILE, []);
+    rewards.push({
+      rewardName,
+      filterName,
+      duration: Number(duration) || 10,
+      cost:     Number(cost)     || 300,
+      rewardId: reward?.id       || null
+    });
+    safeWriteJson(CAM_REWARDS_FILE, rewards);
+    res.json({ ok: true, reward });
+  } catch (e) {
+    console.error('[server] cam-rewards/create Fehler:', e.message);
+    res.json({ ok: false, error: e.message });
+  }
+});
+
+app.post('/api/admin/cam-rewards/update-twitch', async (req, res) => {
+  const { rewardId, cost } = req.body || {};
+  if (!rewardId) return res.status(400).json({ ok: false, error: 'rewardId fehlt' });
+  try {
+    const twitchRewards = require('./backend/twitchRewards.js');
+    await twitchRewards.updateReward(rewardId, { cost: Number(cost) });
+    res.json({ ok: true });
+  } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+
+app.post('/api/admin/cam-rewards/delete-twitch', async (req, res) => {
+  const { rewardId } = req.body || {};
+  if (!rewardId) return res.status(400).json({ ok: false, error: 'rewardId fehlt' });
+  try {
+    const twitchRewards = require('./backend/twitchRewards.js');
+    await twitchRewards.deleteReward(rewardId);
+    res.json({ ok: true });
+  } catch (e) { res.json({ ok: false, error: e.message }); }
+});
+
+/* ============================================================
    DUELS
    ============================================================ */
 app.use('/api/admin/duels', duels.router);
@@ -190,39 +304,37 @@ app.get('/api/admin/sound-files', (req, res) => {
 });
 
 /* ============================================================
-   SOUND-REWARDS (FoxChatPoints)
+   SOUND-REWARDS
    ============================================================ */
 app.get('/api/admin/sound-rewards', (req, res) => {
   res.json(safeReadJson(SOUND_REWARDS_FILE, []));
 });
 
 app.post('/api/admin/sound-rewards', (req, res) => {
-  const rewards = Array.isArray(req.body) ? req.body : [];
-  res.json({ ok: safeWriteJson(SOUND_REWARDS_FILE, rewards) });
+  res.json({ ok: safeWriteJson(SOUND_REWARDS_FILE, Array.isArray(req.body) ? req.body : []) });
 });
 
 app.post('/api/admin/sound-rewards/create', async (req, res) => {
   const { rewardName, file, cost, volume } = req.body || {};
   if (!rewardName || !file) return res.status(400).json({ ok: false, error: 'rewardName und file erforderlich' });
   try {
+    const twitchRewards = require('./backend/twitchRewards.js');
     const reward = await twitchRewards.createReward({
-      title: rewardName, cost: Number(cost) || 100,
+      title: `${rewardName} [Sound]`, cost: Number(cost) || 100,
       is_enabled: true, is_user_input_required: false
     });
     const rewards = safeReadJson(SOUND_REWARDS_FILE, []);
-    rewards.push({ rewardName, file, volume: Number(volume) || 80, cost: Number(cost) || 100, rewardId: reward?.id || null });
+    rewards.push({ rewardName: `${rewardName} [Sound]`, file, volume: Number(volume) || 80, cost: Number(cost) || 100, rewardId: reward?.id || null });
     safeWriteJson(SOUND_REWARDS_FILE, rewards);
     res.json({ ok: true, reward });
-  } catch (e) {
-    console.error('[server] sound-rewards/create Fehler:', e.message);
-    res.json({ ok: false, error: e.message });
-  }
+  } catch (e) { res.json({ ok: false, error: e.message }); }
 });
 
 app.post('/api/admin/sound-rewards/update-twitch', async (req, res) => {
   const { rewardId, cost } = req.body || {};
   if (!rewardId) return res.status(400).json({ ok: false, error: 'rewardId fehlt' });
   try {
+    const twitchRewards = require('./backend/twitchRewards.js');
     await twitchRewards.updateReward(rewardId, { cost: Number(cost) });
     res.json({ ok: true });
   } catch (e) { res.json({ ok: false, error: e.message }); }
@@ -232,6 +344,7 @@ app.post('/api/admin/sound-rewards/delete-twitch', async (req, res) => {
   const { rewardId } = req.body || {};
   if (!rewardId) return res.status(400).json({ ok: false, error: 'rewardId fehlt' });
   try {
+    const twitchRewards = require('./backend/twitchRewards.js');
     await twitchRewards.deleteReward(rewardId);
     res.json({ ok: true });
   } catch (e) { res.json({ ok: false, error: e.message }); }
@@ -240,14 +353,8 @@ app.post('/api/admin/sound-rewards/delete-twitch', async (req, res) => {
 /* ============================================================
    BIT-SOUNDS
    ============================================================ */
-app.get('/api/admin/bit-sounds', (req, res) => {
-  res.json(safeReadJson(BIT_SOUNDS_FILE, []));
-});
-
-app.post('/api/admin/bit-sounds', (req, res) => {
-  const bitSounds = Array.isArray(req.body) ? req.body : [];
-  res.json({ ok: safeWriteJson(BIT_SOUNDS_FILE, bitSounds) });
-});
+app.get('/api/admin/bit-sounds',  (req, res) => res.json(safeReadJson(BIT_SOUNDS_FILE, [])));
+app.post('/api/admin/bit-sounds', (req, res) => res.json({ ok: safeWriteJson(BIT_SOUNDS_FILE, Array.isArray(req.body) ? req.body : []) }));
 
 /* ============================================================
    CREDITS API
@@ -255,15 +362,12 @@ app.post('/api/admin/bit-sounds', (req, res) => {
 app.get('/api/admin/credits', (req, res) => {
   try {
     const files = fs.readdirSync(CREDITS_DIR).filter(f => f.endsWith('.json'));
-    const all   = files.map(f => {
-      try { return JSON.parse(fs.readFileSync(path.join(CREDITS_DIR, f), 'utf8')); }
-      catch { return null; }
-    }).filter(Boolean);
+    const all   = files.map(f => { try { return JSON.parse(fs.readFileSync(path.join(CREDITS_DIR, f), 'utf8')); } catch { return null; } }).filter(Boolean);
     res.json(all);
   } catch (e) { res.json([]); }
 });
 
-app.get('/api/admin/credits/:username', (req, res) => res.json(readCredits(req.params.username)));
+app.get('/api/admin/credits/:username',    (req, res) => res.json(readCredits(req.params.username)));
 
 app.post('/api/admin/credits/:username', (req, res) => {
   const username = req.params.username;
@@ -273,33 +377,25 @@ app.post('/api/admin/credits/:username', (req, res) => {
   else if (typeof body.delta === 'number') data.credits = (data.credits || 0) + body.delta;
   else return res.status(400).json({ error: 'Bitte {credits: n} oder {delta: n} senden' });
   data.username = username;
-  return writeCredits(username, data)
-    ? res.json({ ok: true, credits: data.credits })
-    : res.status(500).json({ error: 'Schreibfehler' });
+  return writeCredits(username, data) ? res.json({ ok: true, credits: data.credits }) : res.status(500).json({ error: 'Schreibfehler' });
 });
 
 app.delete('/api/admin/credits/:username', (req, res) => {
-  const username = req.params.username;
-  const data     = readCredits(username);
-  data.credits   = 0;
-  return writeCredits(username, data)
-    ? res.json({ ok: true, credits: 0 })
-    : res.status(500).json({ error: 'Schreibfehler' });
+  const data = readCredits(req.params.username);
+  data.credits = 0;
+  return writeCredits(req.params.username, data) ? res.json({ ok: true, credits: 0 }) : res.status(500).json({ error: 'Schreibfehler' });
 });
 
 /* ============================================================
    BANNER
    ============================================================ */
-app.get('/api/admin/banner', (req, res) => {
-  res.json({ exists: fs.existsSync(path.join(CONFIG.bannerFolder, 'banner.png')) });
-});
+app.get('/api/admin/banner', (req, res) => res.json({ exists: fs.existsSync(path.join(CONFIG.bannerFolder, 'banner.png')) }));
 
 app.post('/api/admin/banner', (req, res) => {
   try {
     const { imageBase64 } = req.body || {};
     if (!imageBase64) return res.status(400).json({ error: 'imageBase64 fehlt' });
-    const data = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-    fs.writeFileSync(path.join(CONFIG.bannerFolder, 'banner.png'), Buffer.from(data, 'base64'));
+    fs.writeFileSync(path.join(CONFIG.bannerFolder, 'banner.png'), Buffer.from(imageBase64.replace(/^data:image\/\w+;base64,/, ''), 'base64'));
     return res.json({ ok: true });
   } catch (err) { return res.status(500).json({ error: 'Speicherfehler' }); }
 });
@@ -321,15 +417,10 @@ app.get('/api/admin/obs-filters', async (req, res) => {
 });
 
 /* ============================================================
-   CAMFILTER SETTINGS
+   CAMFILTER SETTINGS (alt)
    ============================================================ */
-app.get('/api/admin/camfilter-settings', (req, res) => res.json(loadCamfilterSettings()));
-
-app.post('/api/admin/camfilter-settings', (req, res) => {
-  saveCamfilterSettings(Array.isArray(req.body) ? req.body : []);
-  res.json({ ok: true });
-});
-
+app.get('/api/admin/camfilter-settings',      (req, res) => res.json(loadCamfilterSettings()));
+app.post('/api/admin/camfilter-settings',     (req, res) => { saveCamfilterSettings(Array.isArray(req.body) ? req.body : []); res.json({ ok: true }); });
 app.post('/api/admin/camfilter-settings/add', (req, res) => {
   const { filterName, cost, duration } = req.body || {};
   if (!filterName) return res.status(400).json({ ok: false, error: 'filterName fehlt' });
