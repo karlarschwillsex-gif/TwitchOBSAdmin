@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Credits Renderer</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: transparent;
+      overflow: hidden;
+      color: #fff;
+    }
+
+    #viewport {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      position: relative;
+      display: none;
+      mask-image: linear-gradient(to bottom,
+        transparent 0%, rgba(0,0,0,0.5) 6%, black 15%,
+        black 85%, rgba(0,0,0,0.5) 94%, transparent 100%);
+      -webkit-mask-image: linear-gradient(to bottom,
+        transparent 0%, rgba(0,0,0,0.5) 6%, black 15%,
+        black 85%, rgba(0,0,0,0.5) 94%, transparent 100%);
+    }
+
+    #viewport.active { display: block; }
+
+    #scroll-content {
+      position: absolute;
+      width: 100%;
+      left: 0;
+      text-align: center;
+      padding: 80px 60px;
+      will-change: transform;
+    }
+
+    .credits-logo {
+      max-width: 300px;
+      max-height: 120px;
+      object-fit: contain;
+      margin: 0 auto;
+      display: block;
+    }
+
+    .credits-headline {
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+
+    .credits-subtitle {
+      opacity: 0.85;
+      white-space: pre-line;
+    }
+
+    .credits-section {
+      margin: 0 auto;
+      max-width: 700px;
+    }
+
+    .credits-section-title {
+      font-weight: bold;
+      color: #9b7fd4;
+      letter-spacing: 1px;
+    }
+
+    .credits-names {
+      line-height: 2;
+      opacity: 0.9;
+    }
+
+    .credits-farewell {
+      opacity: 0.9;
+      white-space: pre-line;
+    }
+
+    .credits-raid {
+      font-style: italic;
+      opacity: 0.9;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+  <div id="viewport">
+    <div id="scroll-content"></div>
+  </div>
+  <script src="/renderer.js"></script>
+</body>
+</html>

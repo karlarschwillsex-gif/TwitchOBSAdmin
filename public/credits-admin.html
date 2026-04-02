@@ -1,0 +1,389 @@
+<div style="max-width:1100px; margin:0 auto;">
+
+<div id="creditsStatus" class="msg" style="text-align:center; margin-bottom:10px;"></div>
+
+<!-- START/STOP -->
+<div class="econ-section">
+  <div class="econ-title">Credits steuern</div>
+  <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+    <button id="creditsStartBtn" style="background:#2d7a2d;border:none;border-radius:6px;padding:10px 24px;color:#eee;cursor:pointer;font-size:1em;font-weight:bold;">▶ Starten</button>
+    <button id="creditsStopBtn"  style="background:#7a2d2d;border:none;border-radius:6px;padding:10px 24px;color:#eee;cursor:pointer;font-size:1em;font-weight:bold;">⏹ Stoppen</button>
+    <span id="creditsRunStatus" style="font-size:0.9em; opacity:0.7;">Status: unbekannt</span>
+  </div>
+</div>
+
+<!-- VORSCHAU -->
+<div class="econ-section">
+  <div class="econ-title">Vorschau</div>
+  <div style="display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap;">
+    <div style="position:relative; width:320px; height:180px; border-radius:6px; overflow:hidden; border:1px solid #444; flex-shrink:0;">
+      <div id="cr_bgSimulator" style="position:absolute;inset:0;z-index:0;background:#000;"></div>
+      <div id="cr_previewInner" style="position:absolute;inset:0;z-index:1;text-align:center;padding:12px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;font-size:10px;background:transparent;">
+        <div id="pv_headline" style="font-weight:bold;color:#9b7fd4;font-size:13px;"></div>
+        <div id="pv_subtitle" style="opacity:0.8;font-size:9px;"></div>
+        <div id="pv_farewell" style="opacity:0.7;font-size:9px;margin-top:6px;"></div>
+        <div id="pv_raid"     style="font-style:italic;opacity:0.8;font-size:8px;"></div>
+      </div>
+    </div>
+    <div>
+      <label class="econ-label">Vorschau-Hintergrund<br><span style="font-size:0.8em;opacity:0.6;">nur für die Vorschau!</span></label>
+      <select id="cr_bgPreviewSel" class="econ-input" style="width:160px; margin-top:4px;">
+        <option value="black">Schwarz</option>
+        <option value="white">Weiß</option>
+        <option value="checker">Schachbrett</option>
+        <option value="custom">Eigenes Bild</option>
+      </select>
+      <div id="cr_bgCustomWrap" style="display:none; margin-top:6px;">
+        <input type="text" id="cr_bgCustomUrl" class="econ-input" placeholder="/bg.png" style="width:200px;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TEXTE -->
+<div class="econ-section">
+  <div class="econ-title">Texte</div>
+  <div class="econ-grid">
+    <div class="econ-col">
+      <div class="econ-row">
+        <label class="econ-label">Headline</label>
+        <input type="text" id="cr_headline" class="econ-input" style="width:100%;max-width:300px;" placeholder="z.B. FaireWelt">
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Untertitel</label>
+        <textarea id="cr_subtitle" class="econ-input" style="width:100%;max-width:300px;height:56px;resize:vertical;"></textarea>
+      </div>
+    </div>
+    <div class="econ-col">
+      <div class="econ-row">
+        <label class="econ-label">Abschlusstext</label>
+        <textarea id="cr_farewell" class="econ-input" style="width:100%;max-width:300px;height:56px;resize:vertical;"></textarea>
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Raid-Text <span style="font-size:0.8em;opacity:0.6;">[Twitchname] = Platzhalter</span></label>
+        <textarea id="cr_raidText" class="econ-input" style="width:100%;max-width:300px;height:56px;resize:vertical;"></textarea>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RAID -->
+<div class="econ-section">
+  <div class="econ-title">Raid-Ziel</div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <input type="text" id="cr_raidTarget" class="econ-input" placeholder="Twitch-Name" style="width:200px;">
+    <select id="cr_recentRaids" class="econ-input" style="width:auto;">
+      <option value="">Letzte ▼</option>
+    </select>
+    <button class="btn-save" id="cr_saveRaidBtn" style="padding:6px 14px;">Setzen</button>
+  </div>
+</div>
+
+<!-- SCHRIFT & FARBEN -->
+<div class="econ-section">
+  <div class="econ-title">Schrift & Farben</div>
+  <div class="econ-grid">
+    <div class="econ-col">
+      <div class="econ-row">
+        <label class="econ-label">Schriftart</label>
+        <select id="cr_fontFamily" class="econ-input" style="width:100%;max-width:260px;"></select>
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Textfarbe</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="color" id="cr_textColorPicker" value="#ffffff" style="width:40px;height:32px;padding:2px;background:#222;border:1px solid #444;border-radius:4px;cursor:pointer;">
+          <input type="text"  id="cr_textColor" class="econ-input" value="#ffffff" style="width:90px;">
+        </div>
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Schattenfarbe</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="color" id="cr_shadowColorPicker" value="#000000" style="width:40px;height:32px;padding:2px;background:#222;border:1px solid #444;border-radius:4px;cursor:pointer;">
+          <input type="text"  id="cr_shadowColor" class="econ-input" value="#000000" style="width:90px;">
+        </div>
+      </div>
+    </div>
+    <div class="econ-col">
+      <div class="econ-row"><label class="econ-label">Headline (px)</label><input type="number" id="cr_fontSizeHeadline" class="econ-input" value="64" style="width:80px;"></div>
+      <div class="econ-row"><label class="econ-label">Untertitel (px)</label><input type="number" id="cr_fontSizeSubtitle" class="econ-input" value="32" style="width:80px;"></div>
+      <div class="econ-row"><label class="econ-label">Kategorie (px)</label><input type="number" id="cr_fontSizeCategory" class="econ-input" value="28" style="width:80px;"></div>
+      <div class="econ-row"><label class="econ-label">Namen (px)</label><input type="number" id="cr_fontSizeNames" class="econ-input" value="22" style="width:80px;"></div>
+      <div class="econ-row">
+        <label class="econ-label">Blur / Offset</label>
+        <div style="display:flex;gap:6px;">
+          <input type="number" id="cr_shadowBlur"   class="econ-input" value="6" style="width:60px;">
+          <input type="number" id="cr_shadowOffset" class="econ-input" value="2" style="width:60px;">
+        </div>
+      </div>
+      <div class="econ-row"><label class="econ-label">Scroll-Speed</label><input type="number" id="cr_scrollSpeed" class="econ-input" value="0.8" step="0.1" min="0.1" max="20" style="width:80px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOGOS -->
+<div class="econ-section">
+  <div class="econ-title">Logos</div>
+  <div class="econ-grid">
+    <div class="econ-col">
+      <label class="econ-label">Logo oben (URL/Pfad)</label>
+      <input type="text" id="cr_logo1" class="econ-input" placeholder="/logo.png" style="width:100%;max-width:280px;">
+      <img id="cr_logo1Preview" style="max-height:40px;margin-top:4px;display:none;border:1px solid #444;border-radius:4px;">
+    </div>
+    <div class="econ-col">
+      <label class="econ-label">Logo unten (URL/Pfad)</label>
+      <input type="text" id="cr_logo2" class="econ-input" placeholder="/logo.png" style="width:100%;max-width:280px;">
+      <img id="cr_logo2Preview" style="max-height:40px;margin-top:4px;display:none;border:1px solid #444;border-radius:4px;">
+    </div>
+  </div>
+</div>
+
+<!-- SEKTIONEN -->
+<div class="econ-section">
+  <div class="econ-title">Sektionen — Reihenfolge & Aktivierung</div>
+  <div class="econ-info">↑↓ sortieren · Haken = aktiv</div>
+  <div id="cr_sectionList" style="margin-top:10px;"></div>
+</div>
+
+<!-- SPEICHERN -->
+<div class="econ-section">
+  <div class="econ-save-wrapper">
+    <button class="btn-save" id="cr_saveBtn">💾 Speichern</button>
+    <button class="btn-save" id="cr_reloadBtn" style="background:#444;margin-left:8px;">🔄 Neu laden</button>
+  </div>
+</div>
+
+<style>
+  .section-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:#222;border:1px solid #333;border-radius:6px;margin-bottom:5px;}
+  .section-item:hover{border-color:#555;}
+  .section-move{background:#333;border:1px solid #555;color:#eee;width:24px;height:24px;border-radius:4px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;}
+  .section-move:hover{background:#555;}
+  .section-move:disabled{opacity:0.3;cursor:default;}
+  .section-check{width:15px;height:15px;cursor:pointer;accent-color:#6441a5;}
+  .section-label{flex:1;font-size:0.88em;}
+  .section-type{font-size:0.72em;opacity:0.5;}
+  .checker-bg{
+    background-image:linear-gradient(45deg,#555 25%,transparent 25%),linear-gradient(-45deg,#555 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#555 75%),linear-gradient(-45deg,transparent 75%,#555 75%);
+    background-size:20px 20px;
+    background-position:0 0,0 10px,10px -10px,-10px 0;
+    background-color:#333;
+  }
+</style>
+
+<script>
+(function() {
+  var initCheck = setInterval(function() {
+    if (document.getElementById('cr_saveBtn')) { clearInterval(initCheck); initCreditsAdmin(); }
+  }, 50);
+
+  function initCreditsAdmin() {
+    var cfg = null;
+    var statusEl = document.getElementById('creditsStatus');
+    var bgSim    = document.getElementById('cr_bgSimulator');
+
+    function setStatus(msg, isError) {
+      statusEl.textContent = msg || '';
+      statusEl.style.color = isError ? '#f66' : '#9f9';
+      if (msg) setTimeout(function() { statusEl.textContent = ''; }, 5000);
+    }
+
+    // ── Vorschau ──
+    function updatePreview() {
+      document.getElementById('pv_headline').textContent = document.getElementById('cr_headline').value;
+      document.getElementById('pv_subtitle').textContent = document.getElementById('cr_subtitle').value;
+      document.getElementById('pv_farewell').textContent = document.getElementById('cr_farewell').value;
+      var rt = document.getElementById('cr_raidTarget').value;
+      var tx = document.getElementById('cr_raidText').value;
+      document.getElementById('pv_raid').textContent = rt ? tx.replace('[Twitchname]', rt) : '';
+      var inner = document.getElementById('cr_previewInner');
+      inner.style.color      = document.getElementById('cr_textColor').value || '#fff';
+      inner.style.fontFamily = document.getElementById('cr_fontFamily').value || 'Segoe UI';
+    }
+
+    ['cr_headline','cr_subtitle','cr_farewell','cr_raidText','cr_raidTarget','cr_textColor'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener('input', updatePreview);
+    });
+    document.getElementById('cr_fontFamily').addEventListener('change', updatePreview);
+
+    // ── Vorschau Hintergrund ──
+    function applyBg(val) {
+      bgSim.removeAttribute('class');
+      bgSim.style.cssText = 'position:absolute;inset:0;z-index:0;';
+      if (val === 'black')   { bgSim.style.background = '#000'; }
+      else if (val === 'white')   { bgSim.style.background = '#fff'; }
+      else if (val === 'checker') { bgSim.className = 'checker-bg'; }
+      else if (val === 'custom')  {
+        var url = document.getElementById('cr_bgCustomUrl').value.trim();
+        if (url) bgSim.style.background = "url('" + url + "') center/cover no-repeat";
+      }
+    }
+
+    document.getElementById('cr_bgPreviewSel').onchange = function() {
+      var show = this.value === 'custom';
+      document.getElementById('cr_bgCustomWrap').style.display = show ? 'block' : 'none';
+      applyBg(this.value);
+    };
+    document.getElementById('cr_bgCustomUrl').oninput = function() { applyBg('custom'); };
+
+    // ── Color Sync ──
+    document.getElementById('cr_textColorPicker').oninput   = function() { document.getElementById('cr_textColor').value   = this.value; updatePreview(); };
+    document.getElementById('cr_textColor').oninput         = function() { try { document.getElementById('cr_textColorPicker').value   = this.value; } catch(e){} updatePreview(); };
+    document.getElementById('cr_shadowColorPicker').oninput = function() { document.getElementById('cr_shadowColor').value  = this.value; };
+    document.getElementById('cr_shadowColor').oninput       = function() { try { document.getElementById('cr_shadowColorPicker').value  = this.value; } catch(e){} };
+
+    // ── Logo Preview ──
+    function bindLogo(inputId, imgId) {
+      document.getElementById(inputId).oninput = function() {
+        var img = document.getElementById(imgId);
+        if (this.value) { img.src=this.value; img.style.display='block'; } else img.style.display='none';
+      };
+    }
+    bindLogo('cr_logo1','cr_logo1Preview');
+    bindLogo('cr_logo2','cr_logo2Preview');
+
+    // ── Fonts ──
+    function loadFonts(currentFont) {
+      var sel = document.getElementById('cr_fontFamily');
+      sel.innerHTML = '';
+
+      // MAGNETOB fest eingebaut
+      var sMag = document.createElement('style');
+      sMag.textContent = "@font-face { font-family: 'MAGNETOB'; src: url('/fonts/MAGNETOB.TTF') format('truetype'); }";
+      document.head.appendChild(sMag);
+
+      var grpMy = document.createElement('optgroup');
+      grpMy.label = 'Meine Schriftarten';
+      var oMag = document.createElement('option'); oMag.value='MAGNETOB'; oMag.textContent='MAGNETOB ✦';
+      grpMy.appendChild(oMag);
+      sel.appendChild(grpMy);
+
+      // System Fonts
+      var grpSys = document.createElement('optgroup');
+      grpSys.label = 'System-Schriftarten';
+      ['Segoe UI','Arial','Verdana','Tahoma','Georgia','Times New Roman','Courier New','Impact','Comic Sans MS','Trebuchet MS'].forEach(function(f) {
+        var o = document.createElement('option'); o.value=f; o.textContent=f; grpSys.appendChild(o);
+      });
+      sel.appendChild(grpSys);
+
+      if (currentFont) sel.value = currentFont;
+      updatePreview();
+
+      // Weitere lokale Fonts nachladen
+      fetch('/credits_api/fonts').then(function(r){return r.json();}).then(function(data) {
+        (data.localFonts||[]).filter(function(f){ return f.name.toUpperCase()!=='MAGNETOB'; }).forEach(function(f) {
+          var s = document.createElement('style');
+          s.textContent = "@font-face { font-family:'"+f.name+"'; src:url('/fonts/"+f.file+"') format('truetype'); }";
+          document.head.appendChild(s);
+          var o = document.createElement('option'); o.value=f.name; o.textContent=f.name+' ✦';
+          grpMy.appendChild(o);
+        });
+        if (currentFont) sel.value = currentFont;
+        updatePreview();
+      }).catch(function(){});
+    }
+
+    // ── Sektionen ──
+    function renderSections(sections) {
+      var list = document.getElementById('cr_sectionList'); list.innerHTML='';
+      sections.forEach(function(sec,idx) {
+        var div=document.createElement('div'); div.className='section-item';
+        var up=document.createElement('button'); up.className='section-move'; up.textContent='↑'; up.disabled=(idx===0);
+        up.onclick=function(){var t=sections[idx-1];sections[idx-1]=sections[idx];sections[idx]=t;renderSections(sections);if(cfg)cfg.sections=sections;};
+        var dn=document.createElement('button'); dn.className='section-move'; dn.textContent='↓'; dn.disabled=(idx===sections.length-1);
+        dn.onclick=function(){var t=sections[idx+1];sections[idx+1]=sections[idx];sections[idx]=t;renderSections(sections);if(cfg)cfg.sections=sections;};
+        var cb=document.createElement('input'); cb.type='checkbox'; cb.className='section-check'; cb.checked=sec.enabled;
+        cb.onchange=function(){sections[idx].enabled=this.checked;if(cfg)cfg.sections=sections;};
+        var lbl=document.createElement('span'); lbl.className='section-label'; lbl.textContent=sec.title;
+        var typ=document.createElement('span'); typ.className='section-type'; typ.textContent=sec.type==='twitch'?'📺':'🦊';
+        div.appendChild(up);div.appendChild(dn);div.appendChild(cb);div.appendChild(lbl);div.appendChild(typ);
+        list.appendChild(div);
+      });
+    }
+
+    function updateRunStatus(running) {
+      var el=document.getElementById('creditsRunStatus');
+      if(running){el.textContent='🔴 Credits laufen';el.style.color='#f99';}
+      else{el.textContent='⚫ Gestoppt';el.style.color='#888';}
+    }
+
+    // ── Config laden ──
+    function loadConfig() {
+      setStatus('Lade…');
+      fetch('/credits_api/config').then(function(r){return r.json();}).then(function(data) {
+        cfg=data;
+        document.getElementById('cr_headline').value         = data.headline    ||'';
+        document.getElementById('cr_subtitle').value         = data.subtitle    ||'';
+        document.getElementById('cr_farewell').value         = data.farewell    ||'';
+        document.getElementById('cr_raidText').value         = data.raidText    ||'';
+        document.getElementById('cr_raidTarget').value       = data.raidTarget  ||'';
+        document.getElementById('cr_logo1').value            = data.logo1       ||'';
+        document.getElementById('cr_logo2').value            = data.logo2       ||'';
+        document.getElementById('cr_textColor').value        = data.textColor   ||'#ffffff';
+        document.getElementById('cr_textColorPicker').value  = data.textColor   ||'#ffffff';
+        document.getElementById('cr_shadowColor').value      = data.shadowColor ||'#000000';
+        document.getElementById('cr_shadowColorPicker').value= data.shadowColor ||'#000000';
+        document.getElementById('cr_fontSizeHeadline').value = data.fontSizeHeadline||64;
+        document.getElementById('cr_fontSizeSubtitle').value = data.fontSizeSubtitle||32;
+        document.getElementById('cr_fontSizeCategory').value = data.fontSizeCategory||28;
+        document.getElementById('cr_fontSizeNames').value    = data.fontSizeNames||22;
+        document.getElementById('cr_shadowBlur').value       = data.shadowBlur  ||6;
+        document.getElementById('cr_shadowOffset').value     = data.shadowOffset||2;
+        document.getElementById('cr_scrollSpeed').value      = data.scrollSpeed ||0.8;
+        if(data.logo1){var i=document.getElementById('cr_logo1Preview');i.src=data.logo1;i.style.display='block';}
+        if(data.logo2){var i=document.getElementById('cr_logo2Preview');i.src=data.logo2;i.style.display='block';}
+        var sel=document.getElementById('cr_recentRaids');
+        sel.innerHTML='<option value="">Letzte ▼</option>';
+        (data.recentRaidTargets||[]).forEach(function(name){var o=document.createElement('option');o.value=name;o.textContent=name;sel.appendChild(o);});
+        renderSections(data.sections||[]);
+        loadFonts(data.fontFamily||'Segoe UI');
+        updatePreview();
+        updateRunStatus(data.running||false);
+        setStatus('Geladen ✅');
+      }).catch(function(e){setStatus('Fehler: '+e.message,true);});
+    }
+
+    // ── Speichern ──
+    document.getElementById('cr_saveBtn').onclick=function(){
+      if(!cfg)cfg={};
+      cfg.headline        =document.getElementById('cr_headline').value;
+      cfg.subtitle        =document.getElementById('cr_subtitle').value;
+      cfg.farewell        =document.getElementById('cr_farewell').value;
+      cfg.raidText        =document.getElementById('cr_raidText').value;
+      cfg.raidTarget      =document.getElementById('cr_raidTarget').value.trim();
+      cfg.logo1           =document.getElementById('cr_logo1').value.trim();
+      cfg.logo2           =document.getElementById('cr_logo2').value.trim();
+      cfg.fontFamily      =document.getElementById('cr_fontFamily').value;
+      cfg.textColor       =document.getElementById('cr_textColor').value;
+      cfg.shadowColor     =document.getElementById('cr_shadowColor').value;
+      cfg.fontSizeHeadline=Number(document.getElementById('cr_fontSizeHeadline').value);
+      cfg.fontSizeSubtitle=Number(document.getElementById('cr_fontSizeSubtitle').value);
+      cfg.fontSizeCategory=Number(document.getElementById('cr_fontSizeCategory').value);
+      cfg.fontSizeNames   =Number(document.getElementById('cr_fontSizeNames').value);
+      cfg.shadowBlur      =Number(document.getElementById('cr_shadowBlur').value);
+      cfg.shadowOffset    =Number(document.getElementById('cr_shadowOffset').value);
+      cfg.scrollSpeed     =Number(document.getElementById('cr_scrollSpeed').value);
+      setStatus('Speichere…');
+      fetch('/credits_api/config',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)})
+        .then(function(r){return r.json();}).then(function(d){if(d.ok)setStatus('✅ Gespeichert!');else setStatus('Fehler!',true);})
+        .catch(function(e){setStatus('Fehler: '+e.message,true);});
+    };
+
+    document.getElementById('cr_saveRaidBtn').onclick=function(){
+      var target=document.getElementById('cr_raidTarget').value.trim();
+      if(!target){setStatus('Bitte Twitch-Name eingeben!',true);return;}
+      fetch('/credits_api/raid',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({raidTarget:target})})
+        .then(function(r){return r.json();}).then(function(d){if(d.ok){setStatus('✅ Raid-Ziel gespeichert!');loadConfig();}else setStatus('Fehler!',true);});
+    };
+
+    document.getElementById('cr_recentRaids').onchange=function(){
+      if(this.value){document.getElementById('cr_raidTarget').value=this.value;updatePreview();this.value='';}
+    };
+
+    document.getElementById('creditsStartBtn').onclick=function(){fetch('/credits_api/start',{method:'POST'}).then(function(){setStatus('▶ Credits gestartet!');updateRunStatus(true);});};
+    document.getElementById('creditsStopBtn').onclick =function(){fetch('/credits_api/stop', {method:'POST'}).then(function(){setStatus('⏹ Credits gestoppt.'); updateRunStatus(false);});};
+    document.getElementById('cr_reloadBtn').onclick   =loadConfig;
+
+    loadConfig();
+  }
+})();
+</script>

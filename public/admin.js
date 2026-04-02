@@ -1,5 +1,4 @@
 // /home/fynn/TwitchOBSAdmin/public/admin.js
-// Überarbeitete Admin-Frontend-Logik
 
 // ---------------------------------------------------------
 //  API WRAPPER
@@ -35,11 +34,19 @@ window.onload = () => {
 };
 
 // ---------------------------------------------------------
+//  HTML DATEI FÜR TAB
+// ---------------------------------------------------------
+function getTabFile(tabId) {
+  if (tabId === 'credits-editor') return 'credits-admin.html';
+  return tabId + '.html';
+}
+
+// ---------------------------------------------------------
 //  TAB SYSTEM
 // ---------------------------------------------------------
 async function setupTabs() {
   const buttons = document.querySelectorAll(".tab-btn");
-  const tabs = document.querySelectorAll(".tab");
+  const tabs    = document.querySelectorAll(".tab");
 
   buttons.forEach(btn => {
     btn.onclick = async () => {
@@ -53,23 +60,18 @@ async function setupTabs() {
       if (target) {
         target.style.display = "block";
 
-        if (tabId === "credits-editor") {
-          target.innerHTML = "<p style='opacity:0.6;font-style:italic;'>Credits werden später neu aufgebaut.</p>";
-          return;
-        }
-
         if (target.innerHTML.trim() === "") {
           try {
-            const res = await fetch(`${tabId}.html`);
+            const res = await fetch(getTabFile(tabId));
             if (res.ok) {
               target.innerHTML = await res.text();
 
-              if (tabId === 'economy'       && typeof initEconomy      === 'function') initEconomy();
-              if (tabId === 'sound'         && typeof loadSounds        === 'function') loadSounds();
-              if (tabId === 'duel'          && typeof loadDuels         === 'function') loadDuels();
-              if (tabId === 'raid'          && typeof loadRaidSettings  === 'function') loadRaidSettings();
-              if (tabId === 'overlay-admin' && typeof initOverlayAdmin  === 'function') initOverlayAdmin();
-              if (tabId === 'security'      && typeof initSecurity      === 'function') initSecurity();
+              if (tabId === 'economy'       && typeof initEconomy     === 'function') initEconomy();
+              if (tabId === 'sound'         && typeof loadSounds       === 'function') loadSounds();
+              if (tabId === 'duel'          && typeof loadDuels        === 'function') loadDuels();
+              if (tabId === 'befehle'       && typeof initCmdAdmin     === 'function') initCmdAdmin();
+              if (tabId === 'overlay-admin' && typeof initOverlayAdmin === 'function') initOverlayAdmin();
+              if (tabId === 'security'      && typeof initSecurity     === 'function') initSecurity();
             }
           } catch (e) {
             console.error("Fehler beim Laden von " + tabId, e);
@@ -86,7 +88,6 @@ async function setupTabs() {
 function loadAllTabs() {
   loadSoundAlias().catch(() => {});
   loadCamFilters().catch(() => {});
-  loadBanner().catch(() => {});
 }
 
 // ---------------------------------------------------------
@@ -94,11 +95,8 @@ function loadAllTabs() {
 // ---------------------------------------------------------
 async function loadSoundAlias() {
   let alias = [];
-  try {
-    alias = await api("/api/admin/sound-alias");
-  } catch (e) {
-    alias = [];
-  }
+  try { alias = await api("/api/admin/sound-alias"); }
+  catch (e) { alias = []; }
 
   const body = document.getElementById("aliasBody");
   if (!body) return;
@@ -152,11 +150,8 @@ async function loadSoundAlias() {
 // ---------------------------------------------------------
 async function loadCamFilters() {
   let filters = [];
-  try {
-    filters = await api("/api/admin/camfilter-settings");
-  } catch (e) {
-    filters = [];
-  }
+  try { filters = await api("/api/admin/camfilter-settings"); }
+  catch (e) { filters = []; }
 
   const body = document.getElementById("camFilterBody");
   if (!body) return;
@@ -205,59 +200,11 @@ async function loadCamFilters() {
 }
 
 // ---------------------------------------------------------
-//  BANNER
-// ---------------------------------------------------------
-async function loadBanner() {
-  const preview = document.getElementById("bannerPreview");
-  if (preview) preview.src = "/banner/banner.png?cachebuster=" + Date.now();
-
-  const saveBtn = document.getElementById("saveBannerBtn");
-  if (saveBtn) {
-    saveBtn.onclick = async () => {
-      const file = document.getElementById("bannerUpload").files[0];
-      const msgEl = document.getElementById("bannerMsg");
-      if (!file) {
-        if (msgEl) msgEl.textContent = "Keine Datei ausgewählt!";
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = reader.result;
-        try {
-          await api("/api/admin/banner", "POST", { imageBase64: base64 });
-          if (msgEl) msgEl.textContent = "Banner gespeichert!";
-          if (preview) preview.src = "/banner/banner.png?cachebuster=" + Date.now();
-        } catch (e) {
-          if (msgEl) msgEl.textContent = "Fehler beim Hochladen!";
-        }
-      };
-      reader.readAsDataURL(file);
-    };
-  }
-
-  const deleteBtn = document.getElementById("deleteBannerBtn");
-  if (deleteBtn) {
-    deleteBtn.onclick = async () => {
-      try {
-        await api("/api/admin/banner", "DELETE");
-        const msgEl = document.getElementById("bannerMsg");
-        if (msgEl) msgEl.textContent = "Banner gelöscht!";
-        if (preview) preview.src = "/banner/banner.png?cachebuster=" + Date.now();
-      } catch {
-        const msgEl = document.getElementById("bannerMsg");
-        if (msgEl) msgEl.textContent = "Fehler beim Löschen!";
-      }
-    };
-  }
-}
-
-// ---------------------------------------------------------
 //  openTab
 // ---------------------------------------------------------
 function openTab(tabId) {
   const buttons = document.querySelectorAll(".tab-btn");
-  const tabs = document.querySelectorAll(".tab");
+  const tabs    = document.querySelectorAll(".tab");
 
   buttons.forEach(btn => {
     btn.classList.toggle("active", btn.dataset.tab === tabId);
@@ -269,17 +216,16 @@ function openTab(tabId) {
 
   const target = document.getElementById(tabId);
   if (target && target.innerHTML.trim() === "") {
-    fetch(`${tabId}.html`)
+    fetch(getTabFile(tabId))
       .then(res => res.ok ? res.text() : "")
       .then(html => {
         target.innerHTML = html;
-
-        if (tabId === 'economy'       && typeof initEconomy      === 'function') initEconomy();
-        if (tabId === 'sound'         && typeof loadSounds        === 'function') loadSounds();
-        if (tabId === 'duel'          && typeof loadDuels         === 'function') loadDuels();
-        if (tabId === 'raid'          && typeof loadRaidSettings  === 'function') loadRaidSettings();
-        if (tabId === 'overlay-admin' && typeof initOverlayAdmin  === 'function') initOverlayAdmin();
-        if (tabId === 'security'      && typeof initSecurity      === 'function') initSecurity();
+        if (tabId === 'economy'       && typeof initEconomy     === 'function') initEconomy();
+        if (tabId === 'sound'         && typeof loadSounds       === 'function') loadSounds();
+        if (tabId === 'duel'          && typeof loadDuels        === 'function') loadDuels();
+        if (tabId === 'befehle'       && typeof initCmdAdmin     === 'function') initCmdAdmin();
+        if (tabId === 'overlay-admin' && typeof initOverlayAdmin === 'function') initOverlayAdmin();
+        if (tabId === 'security'      && typeof initSecurity     === 'function') initSecurity();
       });
   }
 }

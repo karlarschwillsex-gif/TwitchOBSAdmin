@@ -1,254 +1,234 @@
-const els = {
-  status: document.getElementById("status"),
-
-  minBet: document.getElementById("minBet"),
-  maxBet: document.getElementById("maxBet"),
-  cooldown: document.getElementById("cooldown"),
-  acceptTimeout: document.getElementById("acceptTimeout"),
-
-  vipWinChance: document.getElementById("vipWinChance"),
-  vipLoseBonus: document.getElementById("vipLoseBonus"),
-
-  modWinChance: document.getElementById("modWinChance"),
-  modLoseBonus: document.getElementById("modLoseBonus"),
-
-  adminLoseBonus: document.getElementById("adminLoseBonus"),
-
-  subBonus: document.getElementById("subBonus"),
-
-  saveBtn: document.getElementById("saveDuelsBtn"),
-  resetStatsBtn: document.getElementById("resetStatsBtn"),
-  abortDuelsBtn: document.getElementById("abortDuelsBtn"),
-};
-
-function setStatus(msg, isError = false) {
-  els.status.textContent = msg || "";
-  els.status.classList.toggle("error", !!isError);
+function loadDuels() {
+    // Warte bis HTML wirklich im DOM ist
+    var check = setInterval(function() {
+        if (document.getElementById('duelMinBet')) {
+            clearInterval(check);
+            initDuelAdmin();
+        }
+    }, 50);
 }
 
-function getPinHeader() {
-  return { "x-admin-pin": localStorage.getItem("adminPin") || "" };
-}
+function initDuelAdmin() {
 
-/* -----------------------------------------
-   DUELL-EINSTELLUNGEN LADEN
-------------------------------------------*/
-
-async function loadDuels() {
-  setStatus("Lade Duell-Einstellungen…");
-
-  try {
-    const res = await fetch("/api/admin/duels", {
-      headers: {
-        ...getPinHeader()
-      }
-    });
-
-    if (!res.ok) {
-      setStatus("Fehler beim Laden: " + res.statusText, true);
-      return;
-    }
-
-    const cfg = await res.json();
-
-    // Grundregeln
-    els.minBet.value = cfg.minBet ?? 10;
-    els.maxBet.value = cfg.maxBet ?? 1000;
-    els.cooldown.value = cfg.cooldown ?? 30;
-    els.acceptTimeout.value = cfg.acceptTimeout ?? 30;
-
-    // VIP
-    els.vipWinChance.value = cfg.vipWinChance ?? 0.25;
-    els.vipLoseBonus.value = cfg.vipLoseBonus ?? 2.0;
-
-    // MOD
-    els.modWinChance.value = cfg.modWinChance ?? 0.25;
-    els.modLoseBonus.value = cfg.modLoseBonus ?? 2.0;
-
-    // Admin
-    els.adminLoseBonus.value = cfg.adminLoseBonus ?? 3.0;
-
-    // SUB
-    els.subBonus.value = cfg.subBonus ?? 2.0;
-
-    setStatus("Duell-Einstellungen geladen.");
-  } catch (err) {
-    console.error(err);
-    setStatus("Duell-Einstellungen konnten nicht geladen werden.", true);
-  }
-}
-
-/* -----------------------------------------
-   DUELL-EINSTELLUNGEN SPEICHERN
-------------------------------------------*/
-
-async function saveDuels() {
-  const payload = {
-    minBet: Number(els.minBet.value || 0),
-    maxBet: Number(els.maxBet.value || 0),
-    cooldown: Number(els.cooldown.value || 0),
-    acceptTimeout: Number(els.acceptTimeout.value || 0),
-
-    vipWinChance: Number(els.vipWinChance.value || 0),
-    vipLoseBonus: Number(els.vipLoseBonus.value || 1),
-
-    modWinChance: Number(els.modWinChance.value || 0),
-    modLoseBonus: Number(els.modLoseBonus.value || 1),
-
-    adminLoseBonus: Number(els.adminLoseBonus.value || 1),
-
-    subBonus: Number(els.subBonus.value || 1),
-  };
-
-  // Validierung
-  if (payload.minBet < 0 || payload.maxBet < 1) {
-    return setStatus("Einsatzwerte sind ungültig.", true);
-  }
-
-  if (payload.maxBet < payload.minBet) {
-    return setStatus("Maximal-Einsatz darf nicht kleiner als Mindest-Einsatz sein.", true);
-  }
-
-  if (payload.cooldown < 0 || payload.acceptTimeout < 5) {
-    return setStatus("Cooldown oder Timeout ungültig.", true);
-  }
-
-  if (payload.vipLoseBonus < 1 || payload.modLoseBonus < 1 || payload.adminLoseBonus < 1) {
-    return setStatus("Bonus-Multiplikatoren müssen mindestens 1 sein.", true);
-  }
-
-  if (payload.subBonus < 1) {
-    return setStatus("SUB-Bonus muss mindestens 1 sein.", true);
-  }
-
-  setStatus("Speichere Duell-Einstellungen…");
-
-  try {
-    const res = await fetch("/api/admin/duels", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...getPinHeader()
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) {
-      setStatus("Fehler beim Speichern: " + res.statusText, true);
-      return;
-    }
-
-    const json = await res.json();
-
-    if (json.ok) {
-      setStatus("Duell-Einstellungen gespeichert.");
-    } else {
-      setStatus(json.error || "Duell-Einstellungen konnten nicht gespeichert werden.", true);
-    }
-  } catch (err) {
-    console.error(err);
-    setStatus("Fehler beim Speichern der Duell-Einstellungen.", true);
-  }
-}
-
-/* -----------------------------------------
-   RESET-FUNKTIONEN
-------------------------------------------*/
-
-async function resetStats() {
-  if (!confirm("Duell-Statistik wirklich zurücksetzen?")) return;
-
-  try {
-    const res = await fetch("/api/admin/duels/reset-stats", {
-      method: "POST",
-      headers: {
-        ...getPinHeader()
-      }
-    });
-
-    if (!res.ok) {
-      setStatus("Fehler beim Zurücksetzen.", true);
-      return;
-    }
-
-    setStatus("Duell-Statistik zurückgesetzt.");
-  } catch (err) {
-    console.error(err);
-    setStatus("Fehler beim Zurücksetzen.", true);
-  }
-}
-
-async function abortDuels() {
-  if (!confirm("Alle offenen Duelle abbrechen?")) return;
-
-  try {
-    const res = await fetch("/api/admin/duels/abort", {
-      method: "POST",
-      headers: {
-        ...getPinHeader()
-      }
-    });
-
-    if (!res.ok) {
-      setStatus("Fehler beim Abbrechen.", true);
-      return;
-    }
-
-    setStatus("Alle offenen Duelle wurden abgebrochen.");
-  } catch (err) {
-    console.error(err);
-    setStatus("Fehler beim Abbrechen.", true);
-  }
-}
-
-/* -----------------------------------------
-   INIT
-------------------------------------------*/
-
-function initDuels() {
-  els.saveBtn.addEventListener("click", saveDuels);
-  els.resetStatsBtn.addEventListener("click", resetStats);
-  els.abortDuelsBtn.addEventListener("click", abortDuels);
-
-  loadDuels();
-}
-
-document.addEventListener("DOMContentLoaded", initDuels);
-
-// ---------------------------------------------
-// DUELL-SYSTEM UI
-// ---------------------------------------------
-
-async function loadDuelStatus() {
-    try {
-        const res = await fetch('/api/admin/duels', {
-            headers: { 'x-admin-pin': localStorage.getItem('adminPin') }
+    // ── +/- Buttons ──
+    document.querySelectorAll('.num-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var inp  = document.getElementById(btn.dataset.target);
+            if (!inp) return;
+            var step = parseFloat(btn.dataset.step) || 1;
+            var dir  = btn.dataset.dir === '+' ? 1 : -1;
+            var min  = parseFloat(inp.min);
+            var max  = parseFloat(inp.max);
+            var val  = parseFloat(inp.value) || 0;
+            val      = Math.round((val + step * dir) * 100) / 100;
+            if (!isNaN(min)) val = Math.max(min, val);
+            if (!isNaN(max)) val = Math.min(max, val);
+            inp.value = val;
+            clearCheck(btn.dataset.target);
         });
-        const json = await res.json();
-        document.getElementById('duel-status').textContent =
-            JSON.stringify(json, null, 2);
-    } catch (err) {
-        document.getElementById('duel-status').textContent =
-            'Fehler beim Laden der Duell-Daten.';
+    });
+
+    // ── Input Änderung → Haken löschen ──
+    document.querySelectorAll('.num-input').forEach(function(inp) {
+        inp.addEventListener('input', function() { clearCheck(inp.id); });
+    });
+
+    // ── Haken ──
+    function showCheck(id) {
+        var el = document.getElementById('check_' + id);
+        if (el) el.textContent = '✅';
     }
+    function clearCheck(id) {
+        var el = document.getElementById('check_' + id);
+        if (el) el.textContent = '';
+    }
+
+    // ── Status ──
+    var statusEl = document.getElementById('duelStatus');
+    function setStatus(msg, isError) {
+        if (!statusEl) return;
+        statusEl.textContent = msg || '';
+        statusEl.style.color = isError ? '#f66' : '#9f9';
+        if (msg) setTimeout(function() { statusEl.textContent = ''; }, 5000);
+    }
+
+    // ── Config laden ──
+    function loadConfig() {
+        fetch('/api/admin/duels').then(function(res) {
+            return res.json();
+        }).then(function(cfg) {
+            document.getElementById('duelMinBet').value    = cfg.minBet        || 10;
+            document.getElementById('duelMaxBet').value    = cfg.maxBet        || 100000;
+            document.getElementById('duelCooldown').value  = cfg.cooldown      || 30;
+            document.getElementById('duelTimeout').value   = cfg.acceptTimeout || 30;
+            document.getElementById('duelMaxActive').value = cfg.maxActive     || 3;
+            document.getElementById('duelSubBonus').value  = cfg.subBonus      || 1.5;
+
+            // Siegchance: Migration von Kommazahl auf Prozent
+            var aw = cfg.adminWinChance || 25;
+            var mw = cfg.modWinChance   || 15;
+            var vw = cfg.vipWinChance   || 10;
+            var sw = cfg.subWinChance   || 5;
+            if (aw < 1) aw = Math.round(aw * 100);
+            if (mw < 1) mw = Math.round(mw * 100);
+            if (vw < 1) vw = Math.round(vw * 100);
+            if (sw < 1) sw = Math.round(sw * 100);
+
+            document.getElementById('duelAdminWin').value  = aw;
+            document.getElementById('duelModWin').value    = mw;
+            document.getElementById('duelVipWin').value    = vw;
+            document.getElementById('duelSubWin').value    = sw;
+            document.getElementById('duelAdminLose').value = cfg.adminLoseBonus || 3.0;
+            document.getElementById('duelModLose').value   = cfg.modLoseBonus   || 2.0;
+            document.getElementById('duelVipLose').value   = cfg.vipLoseBonus   || 1.5;
+
+            loadStats(cfg.stats || {});
+        }).catch(function(e) {
+            setStatus('Fehler beim Laden: ' + e.message, true);
+        });
+    }
+
+    // ── Einstellungen speichern ──
+    var saveSettingsBtn = document.getElementById('saveDuelSettingsBtn');
+    if (saveSettingsBtn) {
+        saveSettingsBtn.onclick = function() {
+            var ids = ['duelMinBet','duelMaxBet','duelCooldown','duelTimeout','duelMaxActive','duelSubBonus'];
+            fetch('/api/admin/duels').then(function(res) { return res.json(); }).then(function(cfg) {
+                cfg.minBet        = Number(document.getElementById('duelMinBet').value);
+                cfg.maxBet        = Number(document.getElementById('duelMaxBet').value);
+                cfg.cooldown      = Number(document.getElementById('duelCooldown').value);
+                cfg.acceptTimeout = Number(document.getElementById('duelTimeout').value);
+                cfg.maxActive     = Number(document.getElementById('duelMaxActive').value);
+                cfg.subBonus      = Number(document.getElementById('duelSubBonus').value);
+                return fetch('/api/admin/duels', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(cfg)
+                });
+            }).then(function(res) { return res.json(); }).then(function(d) {
+                if (d.ok) { ids.forEach(showCheck); setStatus('✅ Einstellungen gespeichert!'); }
+                else setStatus('Fehler!', true);
+            }).catch(function(e) { setStatus('Fehler: ' + e.message, true); });
+        };
+    }
+
+    // ── Boni speichern ──
+    var saveBoniBtn = document.getElementById('saveDuelBoniBtn');
+    if (saveBoniBtn) {
+        saveBoniBtn.onclick = function() {
+            var ids = ['duelAdminWin','duelAdminLose','duelModWin','duelModLose','duelVipWin','duelVipLose','duelSubWin'];
+            fetch('/api/admin/duels').then(function(res) { return res.json(); }).then(function(cfg) {
+                cfg.adminWinChance = Number(document.getElementById('duelAdminWin').value);
+                cfg.modWinChance   = Number(document.getElementById('duelModWin').value);
+                cfg.vipWinChance   = Number(document.getElementById('duelVipWin').value);
+                cfg.subWinChance   = Number(document.getElementById('duelSubWin').value);
+                cfg.adminLoseBonus = Number(document.getElementById('duelAdminLose').value);
+                cfg.modLoseBonus   = Number(document.getElementById('duelModLose').value);
+                cfg.vipLoseBonus   = Number(document.getElementById('duelVipLose').value);
+                return fetch('/api/admin/duels', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(cfg)
+                });
+            }).then(function(res) { return res.json(); }).then(function(d) {
+                if (d.ok) { ids.forEach(showCheck); setStatus('✅ Boni gespeichert!'); }
+                else setStatus('Fehler!', true);
+            }).catch(function(e) { setStatus('Fehler: ' + e.message, true); });
+        };
+    }
+
+    // ── Laufende Duelle ──
+    function loadActiveDuels() {
+        var el = document.getElementById('activeDuelsList');
+        if (!el) return;
+        fetch('/api/admin/duels/active').then(function(res) { return res.json(); }).then(function(data) {
+            var list = data.pending || [];
+            if (list.length === 0) { el.innerHTML = '<span style="opacity:0.5;">Keine laufenden Duelle.</span>'; return; }
+            el.innerHTML = '';
+            list.forEach(function(d) {
+                var div = document.createElement('div');
+                div.style.cssText = 'padding:8px;border-bottom:1px solid #333;display:flex;align-items:center;gap:12px;';
+                var badge = d.type === 'offen'
+                    ? '<span style="background:#6441a5;padding:2px 8px;border-radius:10px;font-size:0.8em;">offen</span>'
+                    : '<span style="background:#444;padding:2px 8px;border-radius:10px;font-size:0.8em;">direkt</span>';
+                div.innerHTML = badge + '<span>⚔️ <strong>@' + d.challenger + '</strong> vs <strong>@' + d.target + '</strong></span><span style="color:#9f9;">' + d.bet + ' F$</span><span style="opacity:0.5;font-size:0.85em;">vor ' + d.since + 's</span>';
+                el.appendChild(div);
+            });
+        }).catch(function() { el.textContent = 'Fehler beim Laden.'; });
+    }
+
+    var refreshBtn = document.getElementById('refreshDuelsBtn');
+    if (refreshBtn) refreshBtn.onclick = loadActiveDuels;
+
+    var abortBtn = document.getElementById('abortAllDuelsBtn');
+    if (abortBtn) {
+        abortBtn.onclick = function() {
+            if (!confirm('Alle laufenden Duelle wirklich abbrechen?')) return;
+            fetch('/api/admin/duels/abort', { method: 'POST' }).then(function() {
+                setStatus('Alle Duelle abgebrochen.');
+                loadActiveDuels();
+            });
+        };
+    }
+
+    // ── Stats ──
+    function loadStats(stats) {
+        var body = document.getElementById('duelStatsBody');
+        if (!body) return;
+        var entries = Object.keys(stats).map(function(user) {
+            return Object.assign({ user: user }, stats[user]);
+        }).filter(function(s) {
+            return (s.wins||0) + (s.losses||0) + (s.draws||0) > 0;
+        }).sort(function(a, b) { return (b.earned||0) - (a.earned||0); });
+
+        if (entries.length === 0) {
+            body.innerHTML = '<tr><td colspan="7" style="padding:12px;color:#888;text-align:center;">Noch keine Stats vorhanden.</td></tr>';
+            return;
+        }
+        body.innerHTML = '';
+        entries.forEach(function(s) {
+            var bilanz = (s.earned||0) - (s.lost||0);
+            var color  = bilanz >= 0 ? '#9f9' : '#f66';
+            var tr     = document.createElement('tr');
+            tr.style.borderBottom = '1px solid #333';
+            tr.innerHTML =
+                '<td style="padding:8px;"><strong>@' + s.user + '</strong></td>' +
+                '<td style="padding:8px;text-align:center;color:#9f9;">'  + (s.wins||0)   + '</td>' +
+                '<td style="padding:8px;text-align:center;color:#f66;">'  + (s.losses||0) + '</td>' +
+                '<td style="padding:8px;text-align:center;color:#aaa;">'  + (s.draws||0)  + '</td>' +
+                '<td style="padding:8px;text-align:center;">'             + (s.earned||0) + '</td>' +
+                '<td style="padding:8px;text-align:center;">'             + (s.lost||0)   + '</td>' +
+                '<td style="padding:8px;text-align:center;color:' + color + ';font-weight:bold;">' + (bilanz >= 0 ? '+' : '') + bilanz + '</td>';
+            body.appendChild(tr);
+        });
+    }
+
+    var resetBtn = document.getElementById('resetDuelStatsBtn');
+    if (resetBtn) {
+        resetBtn.onclick = function() {
+            if (!confirm('Alle Duell-Stats wirklich löschen?')) return;
+            fetch('/api/admin/duels/reset-stats', { method: 'POST' }).then(function() {
+                setStatus('Stats gelöscht.');
+                loadConfig();
+                loadActiveDuels();
+            });
+        };
+    }
+
+    // ── Auto-Refresh alle 10s ──
+    var interval = setInterval(loadActiveDuels, 10000);
+    var duelTab  = document.getElementById('duel');
+    if (duelTab) {
+        var observer = new MutationObserver(function() {
+            if (duelTab.style.display === 'none') {
+                clearInterval(interval);
+                observer.disconnect();
+            }
+        });
+        observer.observe(duelTab, { attributes: true, attributeFilter: ['style'] });
+    }
+
+    // ── Init ──
+    loadConfig();
+    loadActiveDuels();
 }
-
-document.getElementById('duel-reset-stats').addEventListener('click', async () => {
-    await fetch('/api/admin/duels/reset-stats', {
-        method: 'POST',
-        headers: { 'x-admin-pin': localStorage.getItem('adminPin') }
-    });
-    loadDuelStatus();
-});
-
-document.getElementById('duel-abort').addEventListener('click', async () => {
-    await fetch('/api/admin/duels/abort', {
-        method: 'POST',
-        headers: { 'x-admin-pin': localStorage.getItem('adminPin') }
-    });
-    loadDuelStatus();
-});
-
-// Beim Laden der Seite direkt Status anzeigen
-loadDuelStatus();
-
