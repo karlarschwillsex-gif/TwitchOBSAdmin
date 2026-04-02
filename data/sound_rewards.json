@@ -1,9 +1,58 @@
 [
   {
-    "rewardName": "WOW",
+    "rewardName": "WOW [Sound]",
     "file": "wow.mp3",
     "volume": 80,
+    "cost": 300,
+    "rewardId": "f9655222-efae-42f4-9b4c-9f29f9a7f03f"
+  },
+  {
+    "rewardName": "Ganix [Sound]",
+    "file": "ganix.mp3",
+    "volume": 80,
+    "cost": 400,
+    "rewardId": "f4e2cebc-18ff-4b1a-a922-f0f13d02d62a"
+  },
+  {
+    "rewardName": "Bier [Sound]",
+    "file": "bier.mp3",
+    "volume": 80,
+    "cost": 400,
+    "rewardId": "9424088a-f14b-4021-b0e9-77edc2483b89"
+  },
+  {
+    "rewardName": "Applaus [Sound]",
+    "file": "Applause.mp3",
+    "volume": 80,
+    "cost": 100,
+    "rewardId": "13887b25-f333-41a1-8134-54b8039398f8"
+  },
+  {
+    "rewardName": "Dumm [Sound]",
+    "file": "dumm.mp3",
+    "volume": 80,
     "cost": 500,
-    "rewardId": "488becfd-fc16-4777-91d0-1301e5bf3d60"
+    "rewardId": "45f6ef42-7669-407b-ac09-8215c9c3a922"
+  },
+  {
+    "rewardName": "Was ist hier los [Sound]",
+    "file": "wasistlos.mp3",
+    "volume": 80,
+    "cost": 500,
+    "rewardId": "c13502ff-c9fb-4d70-b07c-076794d0dcf4"
+  },
+  {
+    "rewardName": "Nein Doch Oh [Sound]",
+    "file": "nein-doch-ohh.mp3",
+    "volume": 80,
+    "cost": 400,
+    "rewardId": "7b43adb5-f4d3-4bc1-b84b-219a3cbdf0d8"
+  },
+  {
+    "rewardName": "Muss das? [Sound]",
+    "file": "mussdas.mp3",
+    "volume": 80,
+    "cost": 500,
+    "rewardId": "23ed2f69-d089-4f0a-a378-bd33cba296e6"
   }
 ]
