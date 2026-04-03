@@ -97,3 +97,75 @@ router.get('/status', (req, res) => {
 
 router.get('/data', async (req, res) => { try { res.json(await collectCreditsData()); } catch(e) { res.json({}); } });
 module.exports = router;
+
+// ── Hilfsfunktionen ──
+const CREDITS_DIR = path.join(__dirname, '..', 'data', 'credits');
+const FDBANK_FILE = path.join(__dirname, '..', 'data', 'fdbank.json');
+
+function readAllCredits() {
+    try {
+        if (!fs.existsSync(CREDITS_DIR)) return [];
+        return fs.readdirSync(CREDITS_DIR)
+            .filter(f => f.endsWith('.json'))
+            .map(f => { try { return JSON.parse(fs.readFileSync(path.join(CREDITS_DIR, f), 'utf8')); } catch { return null; } })
+            .filter(Boolean);
+    } catch { return []; }
+}
+
+async function collectCreditsData() {
+    const all = readAllCredits();
+    const result = {};
+
+    // F$ Top 5
+    result['fd_top5'] = all
+        .filter(u => u.credits > 0)
+        .sort((a, b) => b.credits - a.credits)
+        .slice(0, 5)
+        .map(u => u.username);
+
+    // Duell-König (meiste Siege)
+    result['fd_duel_king'] = all
+        .filter(u => u.duelWins > 0)
+        .sort((a, b) => b.duelWins - a.duelWins)
+        .slice(0, 3)
+        .map(u => u.username);
+
+    // Tapferster Verlierer (meiste Niederlagen)
+    result['fd_brave_loser'] = all
+        .filter(u => u.duelLosses > 0)
+        .sort((a, b) => b.duelLosses - a.duelLosses)
+        .slice(0, 3)
+        .map(u => u.username);
+
+    // Großzügigster (meiste verschenkte F$)
+    result['fd_generous'] = all
+        .filter(u => u.gifted > 0)
+        .sort((a, b) => b.gifted - a.gifted)
+        .slice(0, 3)
+        .map(u => u.username);
+
+    // Aktivster (meiste Nachrichten)
+    result['fd_active'] = all
+        .filter(u => u.messages > 0)
+        .sort((a, b) => b.messages - a.messages)
+        .slice(0, 5)
+        .map(u => u.username);
+
+    return result;
+}
+
+router.get('/fonts', (req, res) => {
+    try {
+        const FONTS_DIR = path.join(__dirname, '..', 'public', 'fonts');
+        if (!fs.existsSync(FONTS_DIR)) return res.json({ localFonts: [] });
+        const localFonts = fs.readdirSync(FONTS_DIR)
+            .filter(f => /\.(ttf|otf|woff|woff2)$/i.test(f))
+            .map(f => ({ name: f.replace(/\.[^.]+$/, ''), file: f }));
+        res.json({ localFonts });
+    } catch { res.json({ localFonts: [] }); }
+});
+
+router.get('/data', async (req, res) => {
+    try { res.json(await collectCreditsData()); }
+    catch(e) { res.json({}); }
+});
