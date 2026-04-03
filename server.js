@@ -50,9 +50,16 @@ app.use('/eventsub', express.raw({ type: 'application/json' }));
    MIDDLEWARE
    ============================================================ */
 app.use(morgan('dev'));
+app.use((req, res, next) => {
+  if ((req.headers.host || '').includes('chatterinfo')) {
+    console.log('[debug] host:', req.headers.host, 'x-forwarded-host:', req.headers['x-forwarded-host']);
+  }
+  next();
+});
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(ROOT, 'public')));
+app.use('/chatterinfo', express.static(path.join(ROOT, 'chatterinfo')));
 
 /* ============================================================
    CONFIG PATHS
@@ -150,6 +157,8 @@ function saveEconomy(cfg) {
    BASIC ENDPOINTS
    ============================================================ */
 app.get('/', (req, res) => {
+  const host = req.headers['x-forwarded-host'] || req.headers.host || '';
+  if (host.includes('chatterinfo')) return res.sendFile(path.join(ROOT, 'chatterinfo', 'index.html'));
   const adminHtml = path.join(ROOT, 'public', 'admin.html');
   if (fs.existsSync(adminHtml)) return res.sendFile(adminHtml);
   res.type('text').send('Admin-Backend läuft');
@@ -355,6 +364,10 @@ app.post('/api/admin/sound-rewards/delete-twitch', async (req, res) => {
 /* ============================================================
    BIT-SOUNDS
    ============================================================ */
+const FDBANK_FILE = path.join(ROOT, 'data', 'fdbank.json');
+app.get('/api/admin/fdbank',  (req, res) => res.json(safeReadJson(FDBANK_FILE, {})));
+app.post('/api/admin/fdbank', (req, res) => res.json({ ok: safeWriteJson(FDBANK_FILE, req.body || {}) }));
+
 app.get('/api/admin/bit-sounds',  (req, res) => res.json(safeReadJson(BIT_SOUNDS_FILE, [])));
 app.post('/api/admin/bit-sounds', (req, res) => res.json({ ok: safeWriteJson(BIT_SOUNDS_FILE, Array.isArray(req.body) ? req.body : []) }));
 

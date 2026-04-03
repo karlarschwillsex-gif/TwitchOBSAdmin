@@ -45,6 +45,45 @@ try {
 } catch (err) { writeLog('[bot] WARNUNG: Commands-Engine nicht geladen:', err.message); }
 
 /* ============================================================
+   F$-BANK (Bits + SUB Kurse)
+   ============================================================ */
+const FDBANK_FILE = path.join(ROOT, 'data', 'fdbank.json');
+
+function loadFDBank() {
+  try {
+    if (!fs.existsSync(FDBANK_FILE)) return { bits: [], subs: [] };
+    return JSON.parse(fs.readFileSync(FDBANK_FILE, 'utf8'));
+  } catch (e) { return { bits: [], subs: [] }; }
+}
+
+// Bits → F$ berechnen
+function calcBitsFD(bits) {
+  const bank = loadFDBank();
+  const stufe = (bank.bits || []).find(b => bits >= b.from && bits <= b.to);
+  if (!stufe) return { fd: bits, rate: 1.0 }; // Fallback 1:1
+  return { fd: Math.ceil(bits * stufe.rate), rate: stufe.rate };
+}
+
+// SUB → F$ berechnen
+function calcSubFD(tier, isResub, isGift) {
+  const bank = loadFDBank();
+  const subs = bank.subs || [];
+
+  const tierMap = { '1000': 'tier1', '2000': 'tier2', '3000': 'tier3', 'Prime': 'tier1' };
+  const tierId  = tierMap[String(tier)] || 'tier1';
+
+  const tierRow    = subs.find(s => s.id === tierId);
+  const resubRow   = subs.find(s => s.resub === true);
+  const giftRow    = subs.find(s => s.gift  === true);
+
+  if (isGift) return giftRow ? giftRow.fd : 600;
+
+  let fd = tierRow ? tierRow.fd : 500;
+  if (isResub && resubRow) fd += resubRow.fd;
+  return fd;
+}
+
+/* ============================================================
    BIT-SOUNDS
    ============================================================ */
 const BIT_SOUNDS_FILE = path.join(ROOT, 'data', 'bit_sounds.json');
@@ -134,6 +173,20 @@ async function broadcastSound(file, volume) {
 }
 
 /* ============================================================
+   F$ VERGEBEN HELPER
+   ============================================================ */
+function giveFD(username, amount) {
+  if (!economy || amount <= 0) return;
+  try {
+    const data    = economy.readCredits(username);
+    data.credits  = (data.credits || 0) + amount;
+    data.username = username;
+    economy.writeCredits(username, data);
+    writeLog(`[bank] ${username} +${amount} F$`);
+  } catch (e) { writeLog('[bank] Fehler:', e.message); }
+}
+
+/* ============================================================
    DUELL-SYSTEM
    ============================================================ */
 try {
@@ -213,7 +266,6 @@ client.on('message', async (channel, userstate, message, self) => {
 
   try {
 
-    // ── Eingebaute Befehle ──
     if (cmd === 'ping') {
       await reply(channel, username, cmd, 'pong 🦊');
       return;
@@ -275,12 +327,18 @@ client.on('message', async (channel, userstate, message, self) => {
       return;
     }
 
+	if (cmd === 'info') {
+	  const tunnel = process.env.CLOUDFLARE_TUNNEL_URL || `http://localhost:${process.env.PORT || 3000}`;
+	  await client.say(channel, `🦊 Alle Infos zum Fuchsbau findest du hier: ${tunnel}/chatterinfo/`);
+	  return;
+	}
+
     if (cmd === 'owner' && (username === (botConfig.owner || '').toLowerCase() || isMod)) {
       await client.say(channel, `@${username} Owner-Befehl ausgeführt`);
       return;
     }
 
-    // ── Dynamische +Befehle aus commands.json ──
+    // ── Dynamische +Befehle ──
     if (commands) {
       const result = await commands.handleCommand({
         cmd, args, username, isAdmin, isMod, isVIP, isSub,
@@ -292,20 +350,11 @@ client.on('message', async (channel, userstate, message, self) => {
           if (result.reason === 'cooldown') {
             await reply(channel, username, cmd, `Noch ${result.rest}s warten! ⏳`);
           }
-          // Bei role: still ignorieren
           return;
         }
-
-        if (result.text) {
-          await client.say(channel, result.text);
-        }
-
-        // F$ Belohnung vergeben
+        if (result.text) await client.say(channel, result.text);
         if (result.fdReward > 0 && economy) {
-          const data    = economy.readCredits(username);
-          data.credits  = (data.credits || 0) + result.fdReward;
-          data.username = username;
-          economy.writeCredits(username, data);
+          giveFD(username, result.fdReward);
           writeLog(`[bot] F$ Belohnung: ${username} +${result.fdReward} F$ für +${cmd}`);
         }
       }
@@ -315,7 +364,7 @@ client.on('message', async (channel, userstate, message, self) => {
 });
 
 /* ============================================================
-   BIT-SPENDEN → F$ + BIT-SOUND
+   BIT-SPENDEN → F$-BANK + BIT-SOUND
    ============================================================ */
 client.on('cheer', async (channel, userstate, message) => {
   const username = (userstate.username || '').toLowerCase();
@@ -324,20 +373,66 @@ client.on('cheer', async (channel, userstate, message) => {
 
   writeLog(`[bot] Cheer: ${username} spendete ${bits} Bits`);
 
-  if (economy) {
-    try {
-      const result = economy.onBitDonation({ username, bits });
-      if (result.delta > 0) {
-        await client.say(channel, `@${username} Danke für ${bits} Bits! 🎉 Du bekommst ${result.delta} F$ (×${result.factor}) 🦊`);
-      }
-    } catch (e) { writeLog('[bot] Fehler bei Bit F$:', e.message); }
-  }
+  // F$-Bank Kurs anwenden
+  const { fd, rate } = calcBitsFD(bits);
+  giveFD(username, fd);
+  await client.say(channel, `@${username} Danke für ${bits} Bits! 🎉 Du bekommst ${fd} F$ (×${rate}) 🦊`);
 
+  // Bit-Sound abspielen
   const bitSound = findBitSound(bits);
   if (bitSound) {
     writeLog(`[bot] Bit-Sound: ${bitSound.file} für ${bits} Bits`);
     await broadcastSound(bitSound.file, bitSound.volume || 80);
   }
+});
+
+/* ============================================================
+   SUB-EVENTS → F$-BANK
+   ============================================================ */
+
+// Neuer Sub (Tier 1/2/3 oder Prime)
+client.on('subscription', async (channel, username, method, message, userstate) => {
+  const user = (username || '').toLowerCase();
+  const tier = method?.plan || '1000';
+  const fd   = calcSubFD(tier, false, false);
+
+  writeLog(`[bot] SUB: ${user} Tier ${tier} → ${fd} F$`);
+  giveFD(user, fd);
+  await client.say(channel, `@${username} Willkommen im Fuchsbau! 🦊 Du bekommst ${fd} F$ für deinen Sub!`);
+});
+
+// Resub
+client.on('resub', async (channel, username, months, message, userstate, methods) => {
+  const user = (username || '').toLowerCase();
+  const tier = methods?.plan || userstate?.['msg-param-sub-plan'] || '1000';
+  const fd   = calcSubFD(tier, true, false);
+
+  writeLog(`[bot] RESUB: ${user} Monat ${months} Tier ${tier} → ${fd} F$`);
+  giveFD(user, fd);
+  await client.say(channel, `@${username} Danke für ${months} Monate! 🦊 Du bekommst ${fd} F$ (inkl. Treue-Bonus)!`);
+});
+
+// Geschenk-SUB (Schenker bekommt F$, Empfänger nicht)
+client.on('subgift', async (channel, username, streakMonths, recipient, methods, userstate) => {
+  const gifter = (username || '').toLowerCase();
+  const tier   = methods?.plan || '1000';
+  const fd     = calcSubFD(tier, false, true);
+
+  writeLog(`[bot] GIFT-SUB: ${gifter} → ${recipient} Tier ${tier} → Schenker bekommt ${fd} F$`);
+  giveFD(gifter, fd);
+  await client.say(channel, `@${username} hat @${recipient} ein Sub geschenkt! 🎁 ${username} bekommt ${fd} F$ für die Großzügigkeit! 🦊`);
+});
+
+// Massen-Geschenk-SUBs
+client.on('submysterygift', async (channel, username, numbOfSubs, methods, userstate) => {
+  const gifter = (username || '').toLowerCase();
+  const tier   = methods?.plan || '1000';
+  const fdPro  = calcSubFD(tier, false, true);
+  const fdGes  = fdPro * numbOfSubs;
+
+  writeLog(`[bot] MYSTERY-GIFT: ${gifter} verschenkt ${numbOfSubs}x Tier ${tier} → ${fdGes} F$`);
+  giveFD(gifter, fdGes);
+  await client.say(channel, `@${username} verschenkt ${numbOfSubs} Subs! 🎁 ${username} bekommt ${fdGes} F$ (${numbOfSubs}× ${fdPro} F$)! 🦊`);
 });
 
 /* ============================================================
