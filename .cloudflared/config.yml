@@ -1,0 +1,12 @@
+tunnel: acdf5827-bd64-4be3-be18-d11a9dbee3dd
+credentials-file: /home/fynn/.cloudflared/acdf5827-bd64-4be3-be18-d11a9dbee3dd.json
+ingress:
+  - hostname: eventsub.fynnlogan.de
+    service: http://localhost:8080
+  - hostname: chatterinfo.fynnlogan.de
+    service: http://localhost:3001
+  - hostname: server.fynnlogan.de
+    service: http://localhost:3000
+  - hostname: credits.fynnlogan.de
+    service: http://localhost:3000
+  - service: http_status:404
