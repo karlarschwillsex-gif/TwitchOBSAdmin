@@ -322,6 +322,16 @@ client.on('message', async (channel, userstate, message, self) => {
       return;
     }
 
+    if (cmd === 'info') {
+      await client.say(channel, `🦊 Alle Infos zum Fuchsbau: https://chatterinfo.fynnlogan.de`);
+      return;
+    }
+
+    if (cmd === 'info') {
+      await client.say(channel, `🦊 Alle Infos zum Fuchsbau: https://chatterinfo.fynnlogan.de`);
+      return;
+    }
+
     if (cmd === 'uptime') {
       await reply(channel, username, cmd, 'Bot läuft 🦊');
       return;
