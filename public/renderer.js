@@ -1,26 +1,20 @@
 // /home/fynn/TwitchOBSAdmin/public/renderer.js
 
-let scrollY     = 0;
-let scrollSpeed = 0.8;
-let isRunning   = false;
-let creditsData = {};
+var scrollY     = 0;
+var scrollSpeed = 0.8;
+var isRunning   = false;
 
-// ── Config + Daten laden ──
 async function loadAll() {
     try {
-        const [cfgRes, dataRes] = await Promise.all([
-            fetch('/credits_api/config'),
-            fetch('/credits_api/data')
-        ]);
-        const cfg  = await cfgRes.json();
-        const data = await dataRes.json();
+        var cfgRes  = await fetch('/credits_api/config?t=' + Date.now());
+        var dataRes = await fetch('/credits_api/data?t='   + Date.now());
+        var cfg     = await cfgRes.json();
+        var data    = await dataRes.json();
 
-        creditsData = data;
+        var wasRunning = isRunning;
+        isRunning      = cfg.running || false;
 
-        const wasRunning = isRunning;
-        isRunning        = cfg.running || false;
-
-        const viewport = document.getElementById('viewport');
+        var viewport = document.getElementById('viewport');
         if (isRunning) {
             viewport.classList.add('active');
             if (!wasRunning) scrollY = window.innerHeight + 100;
@@ -32,150 +26,138 @@ async function loadAll() {
     } catch (e) { console.error('Fehler:', e); }
 }
 
-// ── Config anwenden ──
 function applyConfig(cfg, data) {
-    // Hintergrund
-    const body = document.body;
-    if (cfg.background && cfg.background.trim()) {
-        body.style.background = `url('${cfg.background}') center center / cover no-repeat`;
-    } else {
-        body.style.background = 'transparent';
-    }
+    var logo1H = cfg.logo1Height || 120;
+    var logo2H = cfg.logo2Height || 120;
 
-    // Schrift
-    body.style.color      = cfg.textColor  || '#ffffff';
-    body.style.fontFamily = cfg.fontFamily || 'Segoe UI';
-
+    document.body.style.color = cfg.textColor || '#ffffff';
     scrollSpeed = cfg.scrollSpeed || 0.8;
 
-    const shadow = `${cfg.shadowOffset||2}px ${cfg.shadowOffset||2}px ${cfg.shadowBlur||6}px ${cfg.shadowColor||'#000'}`;
+    var off = cfg.shadowOffset || 2;
+	var sc  = cfg.shadowColor  || '#000000';
+	var bl  = cfg.shadowBlur   || 6;
+	var shadow = 
+    '-' + off + 'px -' + off + 'px 0 ' + sc + ',' +
+    off + 'px -' + off + 'px 0 ' + sc + ',' +
+    '-' + off + 'px ' + off + 'px 0 ' + sc + ',' +
+    off + 'px ' + off + 'px 0 ' + sc + ',' +
+    '0px 4px ' + bl + 'px rgba(0,0,0,0.8)';
 
-    const scroller = document.getElementById('scroll-content');
+    var scroller = document.getElementById('scroll-content');
     if (!scroller) return;
     scroller.style.textShadow = shadow;
-
-    // Inhalt aufbauen
     scroller.innerHTML = '';
 
     // 1. Logo oben
     if (cfg.logo1) {
-        const img = document.createElement('img');
-        img.src             = cfg.logo1;
-        img.className       = 'credits-logo';
-        scroller.appendChild(img);
-        addSpacer(scroller, 30);
+        var img1 = document.createElement('img');
+        img1.src = cfg.logo1;
+        img1.style.cssText = 'max-height:' + logo1H + 'px;width:auto;object-fit:contain;margin:0 auto 20px;display:block;';
+        scroller.appendChild(img1);
+        addSpacer(scroller, 10);
     }
 
     // 2. Headline
     if (cfg.headline) {
-        const el       = document.createElement('div');
-        el.className   = 'credits-headline';
-        el.textContent = cfg.headline;
-        el.style.fontSize = (cfg.fontSizeHeadline || 64) + 'px';
-        scroller.appendChild(el);
-        addSpacer(scroller, 16);
+        var hl = document.createElement('div');
+        hl.style.cssText = 'font-family:MAGNETOB,"Segoe UI",sans-serif;font-weight:normal;letter-spacing:2px;margin-bottom:10px;';
+        hl.textContent = cfg.headline;
+        hl.style.fontSize = (cfg.fontSizeHeadline || 64) + 'px';
+        scroller.appendChild(hl);
     }
 
     // 3. Untertitel
     if (cfg.subtitle) {
-        const el       = document.createElement('div');
-        el.className   = 'credits-subtitle';
-        el.textContent = cfg.subtitle;
-        el.style.fontSize = (cfg.fontSizeSubtitle || 32) + 'px';
-        scroller.appendChild(el);
-        addSpacer(scroller, 50);
+        var sub = document.createElement('div');
+        sub.style.cssText = 'font-family:MAGNETOB,"Segoe UI",sans-serif;font-weight:normal;opacity:0.85;white-space:pre-line;margin-bottom:40px;';
+        sub.textContent = cfg.subtitle;
+        sub.style.fontSize = (cfg.fontSizeSubtitle || 32) + 'px';
+        scroller.appendChild(sub);
     }
 
-    // 4+5. Sektionen (Twitch + F$) in konfigurierter Reihenfolge
-    const sections = cfg.sections || [];
-    sections.filter(s => s.enabled).forEach(section => {
-        const names = data[section.id] || [];
+    addSpacer(scroller, 30);
+
+    // 4. Sektionen
+    var sections = cfg.sections || [];
+    sections.filter(function(s) { return s.enabled; }).forEach(function(section) {
+        var names = data[section.id] || [];
         if (names.length === 0) return;
 
         addSpacer(scroller, 20);
+        var block = document.createElement('div');
+        block.style.cssText = 'margin:0 auto 20px;max-width:800px;text-align:center;';
 
-        const block    = document.createElement('div');
-        block.className = 'credits-section';
-
-        const title       = document.createElement('div');
-        title.className   = 'credits-section-title';
+        var title = document.createElement('div');
+        title.style.cssText = 'font-family:MAGNETOB,"Segoe UI",sans-serif;font-weight:normal;color:#9b7fd4;letter-spacing:1px;margin-bottom:6px;';
         title.textContent = section.title;
         title.style.fontSize = (cfg.fontSizeCategory || 28) + 'px';
         block.appendChild(title);
 
-        addLine(block);
+        var hr = document.createElement('hr');
+        hr.style.cssText = 'border:none;border-top:1px solid rgba(255,255,255,0.2);margin:6px auto;width:60%;';
+        block.appendChild(hr);
 
-        const nameList       = document.createElement('div');
-        nameList.className   = 'credits-names';
+        var nameList = document.createElement('div');
+        nameList.style.cssText = 'font-family:"Segoe UI",sans-serif;line-height:2;opacity:0.9;';
         nameList.style.fontSize = (cfg.fontSizeNames || 22) + 'px';
-        names.forEach(name => {
-            const line       = document.createElement('div');
+        names.forEach(function(name) {
+            var line = document.createElement('div');
             line.textContent = name;
             nameList.appendChild(line);
         });
         block.appendChild(nameList);
         scroller.appendChild(block);
-        addSpacer(scroller, 30);
     });
 
-    // 6. Abschlusstext
+    // 5. Abschlusstext
     addSpacer(scroller, 40);
     if (cfg.farewell) {
-        const el       = document.createElement('div');
-        el.className   = 'credits-farewell';
-        el.textContent = cfg.farewell;
-        el.style.fontSize = (cfg.fontSizeSubtitle || 32) + 'px';
-        scroller.appendChild(el);
+        var far = document.createElement('div');
+        far.style.cssText = 'font-family:MAGNETOB,"Segoe UI",sans-serif;font-weight:normal;opacity:0.9;white-space:pre-line;';
+        far.textContent = cfg.farewell;
+        far.style.fontSize = (cfg.fontSizeSubtitle || 32) + 'px';
+        scroller.appendChild(far);
         addSpacer(scroller, 20);
     }
 
-    // 7. Raid-Text
+    // 6. Raid-Text
     if (cfg.raidTarget && cfg.raidText) {
-        const el       = document.createElement('div');
-        el.className   = 'credits-raid';
-        el.textContent = cfg.raidText.replace('[Twitchname]', cfg.raidTarget);
-        el.style.fontSize = (cfg.fontSizeSubtitle || 32) + 'px';
-        scroller.appendChild(el);
+        var raid = document.createElement('div');
+        raid.style.cssText = 'font-family:MAGNETOB,"Segoe UI",sans-serif;font-weight:normal;opacity:0.9;white-space:pre-line;';
+        raid.textContent = cfg.raidText.replace('[Twitchname]', cfg.raidTarget);
+        raid.style.fontSize = (cfg.fontSizeSubtitle || 32) + 'px';
+        scroller.appendChild(raid);
         addSpacer(scroller, 40);
     }
 
-    // 8. Logo unten
+    // 7. Logo unten
     if (cfg.logo2) {
-        const img = document.createElement('img');
-        img.src       = cfg.logo2;
-        img.className = 'credits-logo';
-        scroller.appendChild(img);
+        var img2 = document.createElement('img');
+        img2.src = cfg.logo2;
+        img2.style.cssText = 'max-height:' + logo2H + 'px;width:auto;object-fit:contain;margin:0 auto 20px;display:block;';
+        scroller.appendChild(img2);
         addSpacer(scroller, 60);
     }
 }
 
-function addSpacer(parent, height) {
-    const s        = document.createElement('div');
-    s.style.height = height + 'px';
+function addSpacer(parent, h) {
+    var s = document.createElement('div');
+    s.style.height = h + 'px';
     parent.appendChild(s);
 }
 
-function addLine(parent) {
-    const hr        = document.createElement('hr');
-    hr.style.cssText = 'border:none;border-top:1px solid rgba(255,255,255,0.2);margin:8px auto;width:60%;';
-    parent.appendChild(hr);
-}
-
-// ── Scroll ──
 function tick() {
     if (isRunning) {
-        const scroller       = document.getElementById('scroll-content');
-        const viewportHeight = window.innerHeight;
-        const contentHeight  = scroller ? scroller.offsetHeight : 0;
-
+        var scroller = document.getElementById('scroll-content');
+        var vh       = window.innerHeight;
+        var contentH = scroller ? scroller.offsetHeight : 0;
         scrollY -= scrollSpeed;
-        if (scrollY < -(contentHeight + 200)) scrollY = viewportHeight + 200;
-        if (scroller) scroller.style.transform = `translateY(${scrollY}px)`;
+        if (scrollY < -(contentH + 200)) scrollY = vh + 200;
+        if (scroller) scroller.style.transform = 'translateY(' + scrollY + 'px)';
     }
     requestAnimationFrame(tick);
 }
 
-// ── Start ──
 loadAll();
 setInterval(loadAll, 5000);
 requestAnimationFrame(tick);

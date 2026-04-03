@@ -4,12 +4,18 @@
   <meta charset="UTF-8">
   <title>Credits Renderer</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @font-face {
+      font-family: 'MAGNETOB';
+      src: url('/fonts/MAGNETOB.TTF') format('truetype');
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
 
     body {
       background: transparent;
       overflow: hidden;
       color: #fff;
+      font-family: 'Segoe UI', sans-serif;
     }
 
     #viewport {
@@ -37,49 +43,71 @@
       will-change: transform;
     }
 
+    /* Logo — nur max-height, Breite automatisch */
     .credits-logo {
-      max-width: 300px;
-      max-height: 120px;
+      max-height: var(--logo-height, 120px);
+      width: auto;
       object-fit: contain;
-      margin: 0 auto;
+      margin: 0 auto 20px;
       display: block;
     }
 
+    /* Headline + Untertitel in MAGNETOB */
     .credits-headline {
-      font-weight: bold;
+      font-family: 'MAGNETOB', 'Segoe UI', sans-serif;
+      font-weight: normal;
       letter-spacing: 2px;
+      margin-bottom: 10px;
     }
 
     .credits-subtitle {
+      font-family: 'MAGNETOB', 'Segoe UI', sans-serif;
+      font-weight: normal;
       opacity: 0.85;
       white-space: pre-line;
+      margin-bottom: 40px;
     }
 
-    .credits-section {
-      margin: 0 auto;
-      max-width: 700px;
-    }
+    /* Kategorie-Titel in MAGNETOB */
+    .credits-section { margin: 0 auto 20px; max-width: 800px; }
 
     .credits-section-title {
-      font-weight: bold;
+      font-family: 'MAGNETOB', 'Segoe UI', sans-serif;
+      font-weight: normal;
       color: #9b7fd4;
       letter-spacing: 1px;
+      margin-bottom: 6px;
     }
 
+    /* Namen in Standard-Schrift */
     .credits-names {
+      font-family: 'Segoe UI', sans-serif;
       line-height: 2;
       opacity: 0.9;
     }
 
+    /* Abschluss + Raid in MAGNETOB */
     .credits-farewell {
+      font-family: 'MAGNETOB', 'Segoe UI', sans-serif;
+      font-weight: normal;
       opacity: 0.9;
       white-space: pre-line;
+      margin-top: 40px;
     }
 
     .credits-raid {
-      font-style: italic;
+      font-family: 'MAGNETOB', 'Segoe UI', sans-serif;
+      font-weight: normal;
       opacity: 0.9;
       white-space: pre-line;
+      margin-top: 20px;
+    }
+
+    hr.credits-hr {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.2);
+      margin: 8px auto;
+      width: 60%;
     }
   </style>
 </head>

@@ -2,7 +2,7 @@
 
 function initCreditsAdmin() {
     var cfg       = null;
-    var savedVals = {}; // zuletzt gespeicherte/geladene Werte
+    var savedVals = {};
     var statusEl  = document.getElementById('creditsStatus');
 
     function setStatus(msg, isError) {
@@ -11,35 +11,30 @@ function initCreditsAdmin() {
         if (msg) setTimeout(function() { statusEl.textContent = ''; }, 5000);
     }
 
-    // ── Felder die getrackt werden ──
     var TRACKED = [
         'headline','subtitle','farewell','raidText',
         'fontFamily','textColor','shadowColor',
         'fontSizeHeadline','fontSizeSubtitle','fontSizeCategory','fontSizeNames',
-        'shadowBlur','shadowOffset','scrollSpeed','logo1','logo2'
+        'shadowBlur','shadowOffset','scrollSpeed','logo1Height','logo2Height','logo1','logo2'
     ];
 
-    // ── Haken setzen/löschen ──
     function setHaken(id, ok) {
         var el = document.getElementById('hk_' + id);
         if (el) el.textContent = ok ? '✅' : '';
     }
 
-    // ── Aktuellen Feldwert lesen ──
     function getVal(id) {
         var el = document.getElementById('cr_' + id);
         if (!el) return '';
         return el.value;
     }
 
-    // ── Alle Haken gegen gespeicherten Wert prüfen ──
     function checkAllHaken() {
         TRACKED.forEach(function(id) {
             setHaken(id, getVal(id) === String(savedVals[id] !== undefined ? savedVals[id] : ''));
         });
     }
 
-    // ── Nach jeder Änderung Haken aktualisieren ──
     TRACKED.forEach(function(id) {
         var el = document.getElementById('cr_' + id);
         if (!el) return;
@@ -49,7 +44,7 @@ function initCreditsAdmin() {
         });
     });
 
-    // ── Color Sync ──
+    // Color Sync
     document.getElementById('cr_textColorPicker').oninput = function() {
         document.getElementById('cr_textColor').value = this.value;
         setHaken('textColor', this.value === String(savedVals['textColor'] || ''));
@@ -67,7 +62,7 @@ function initCreditsAdmin() {
         setHaken('shadowColor', this.value === String(savedVals['shadowColor'] || ''));
     };
 
-    // ── Logo URL Preview ──
+    // Logo URL Preview
     function bindLogoUrl(inputId, imgId) {
         document.getElementById(inputId).oninput = function() {
             var img = document.getElementById(imgId);
@@ -78,7 +73,7 @@ function initCreditsAdmin() {
     bindLogoUrl('cr_logo1', 'cr_logo1Preview');
     bindLogoUrl('cr_logo2', 'cr_logo2Preview');
 
-    // ── Logo Datei Upload ──
+    // Logo File Upload
     function bindLogoFile(fileId, urlId, imgId) {
         document.getElementById(fileId).onchange = function() {
             var file = this.files[0];
@@ -89,7 +84,6 @@ function initCreditsAdmin() {
                 var img = document.getElementById(imgId);
                 img.src = e.target.result;
                 img.style.display = 'block';
-                // Datei-Upload = immer geändert (noch nicht gespeichert)
                 var fieldId = urlId.replace('cr_', '');
                 setHaken(fieldId, false);
             };
@@ -99,7 +93,7 @@ function initCreditsAdmin() {
     bindLogoFile('cr_logo1File', 'cr_logo1', 'cr_logo1Preview');
     bindLogoFile('cr_logo2File', 'cr_logo2', 'cr_logo2Preview');
 
-    // ── Lokale Fonts nachladen ──
+    // Lokale Fonts nachladen
     function loadExtraFonts(currentFont) {
         fetch('/credits_api/fonts').then(function(r) { return r.json(); }).then(function(data) {
             var sel     = document.getElementById('cr_fontFamily');
@@ -119,7 +113,7 @@ function initCreditsAdmin() {
         }).catch(function() {});
     }
 
-    // ── Sektionen ──
+    // Sektionen
     function renderSections(sections) {
         var list = document.getElementById('cr_sectionList');
         list.innerHTML = '';
@@ -150,25 +144,27 @@ function initCreditsAdmin() {
         else          { el.textContent = '⚫ Gestoppt';       el.style.color = '#888'; }
     }
 
-    // ── Felder befüllen + savedVals setzen ──
+    // Felder befüllen + savedVals setzen
     function applyConfig(data) {
         var fields = {
-            headline: data.headline || '',
-            subtitle: data.subtitle || '',
-            farewell: data.farewell || '',
-            raidText: data.raidText || '',
-            logo1: data.logo1 || '',
-            logo2: data.logo2 || '',
-            textColor: data.textColor || '#ffffff',
-            shadowColor: data.shadowColor || '#000000',
-            fontFamily: data.fontFamily || 'MAGNETOB',
+            headline:         data.headline         || '',
+            subtitle:         data.subtitle         || '',
+            farewell:         data.farewell         || '',
+            raidText:         data.raidText         || '',
+            logo1:            data.logo1            || '',
+            logo2:            data.logo2            || '',
+            textColor:        data.textColor        || '#ffffff',
+            shadowColor:      data.shadowColor      || '#000000',
+            fontFamily:       data.fontFamily       || 'MAGNETOB',
             fontSizeHeadline: data.fontSizeHeadline || 64,
             fontSizeSubtitle: data.fontSizeSubtitle || 32,
             fontSizeCategory: data.fontSizeCategory || 28,
-            fontSizeNames: data.fontSizeNames || 22,
-            shadowBlur: data.shadowBlur || 6,
-            shadowOffset: data.shadowOffset || 2,
-            scrollSpeed: data.scrollSpeed || 0.8
+            fontSizeNames:    data.fontSizeNames    || 22,
+            shadowBlur:       data.shadowBlur       || 6,
+            shadowOffset:     data.shadowOffset     || 2,
+            scrollSpeed:      data.scrollSpeed      || 0.8,
+            logo1Height:      data.logo1Height      || 120,
+            logo2Height:      data.logo2Height      || 120
         };
 
         Object.keys(fields).forEach(function(id) {
@@ -177,15 +173,12 @@ function initCreditsAdmin() {
             savedVals[id] = String(fields[id]);
         });
 
-        // Color Pickers sync
         try { document.getElementById('cr_textColorPicker').value   = data.textColor   || '#ffffff'; } catch(e) {}
         try { document.getElementById('cr_shadowColorPicker').value = data.shadowColor || '#000000'; } catch(e) {}
 
-        // Logo Previews
         if (data.logo1) { var i = document.getElementById('cr_logo1Preview'); i.src = data.logo1; i.style.display = 'block'; }
         if (data.logo2) { var i = document.getElementById('cr_logo2Preview'); i.src = data.logo2; i.style.display = 'block'; }
 
-        // Letzte Raids
         var sel = document.getElementById('cr_recentRaids');
         sel.innerHTML = '<option value="">Letzte ▼</option>';
         (data.recentRaidTargets || []).forEach(function(name) {
@@ -194,12 +187,10 @@ function initCreditsAdmin() {
 
         renderSections(data.sections || []);
         updateRunStatus(data.running || false);
-
-        // Haken nach Laden alle korrekt setzen
         checkAllHaken();
     }
 
-    // ── Config laden ──
+    // Config laden
     function loadConfig() {
         setStatus('Lade…');
         fetch('/credits_api/config').then(function(r) { return r.json(); }).then(function(data) {
@@ -210,7 +201,7 @@ function initCreditsAdmin() {
         }).catch(function(e) { setStatus('Fehler: ' + e.message, true); });
     }
 
-    // ── Speichern ──
+    // Speichern
     document.getElementById('cr_saveBtn').onclick = function() {
         if (!cfg) cfg = {};
         cfg.headline         = document.getElementById('cr_headline').value;
@@ -230,6 +221,8 @@ function initCreditsAdmin() {
         cfg.shadowBlur       = Number(document.getElementById('cr_shadowBlur').value);
         cfg.shadowOffset     = Number(document.getElementById('cr_shadowOffset').value);
         cfg.scrollSpeed      = Number(document.getElementById('cr_scrollSpeed').value);
+        cfg.logo1Height      = Number(document.getElementById('cr_logo1Height').value);
+        cfg.logo2Height      = Number(document.getElementById('cr_logo2Height').value);
 
         setStatus('Speichere…');
         fetch('/credits_api/config', {
@@ -238,7 +231,6 @@ function initCreditsAdmin() {
             body: JSON.stringify(cfg)
         }).then(function(r) { return r.json(); }).then(function(d) {
             if (d.ok) {
-                // savedVals auf aktuelle Werte setzen
                 TRACKED.forEach(function(id) { savedVals[id] = getVal(id); });
                 checkAllHaken();
                 setStatus('✅ Gespeichert!');
@@ -248,7 +240,7 @@ function initCreditsAdmin() {
         }).catch(function(e) { setStatus('Fehler: ' + e.message, true); });
     };
 
-    // ── Raid ──
+    // Raid
     document.getElementById('cr_saveRaidBtn').onclick = function() {
         var target = document.getElementById('cr_raidTarget').value.trim();
         if (!target) { setStatus('Bitte Twitch-Name eingeben!', true); return; }
@@ -257,11 +249,8 @@ function initCreditsAdmin() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ raidTarget: target })
         }).then(function(r) { return r.json(); }).then(function(d) {
-            if (d.ok) {
-                setHaken('raid', true);
-                setStatus('✅ Raid-Ziel gespeichert!');
-                loadConfig();
-            } else setStatus('Fehler!', true);
+            if (d.ok) { setHaken('raid', true); setStatus('✅ Raid-Ziel gespeichert!'); loadConfig(); }
+            else setStatus('Fehler!', true);
         });
     };
 
