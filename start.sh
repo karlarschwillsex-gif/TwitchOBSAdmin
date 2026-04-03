@@ -77,6 +77,13 @@ BOT_PID=$!
 write_pid "bot" "$BOT_PID"
 sleep 2
 
+# Start chatterinfo
+echo "Starte chatterinfo..." | tee -a "$LOGDIR/start.log"
+nohup "$NODE_BIN" "$SCRIPT_DIR/chatterinfo/server.js" > "$LOGDIR/chatterinfo.log" 2>&1 &
+CHATTERINFO_PID=$!
+write_pid "chatterinfo" "$CHATTERINFO_PID"
+sleep 1
+
 # Start credits (optional)
 CREDITS_PID=""
 if [[ -d "$CREDITS_DIR" ]]; then
@@ -93,7 +100,7 @@ else
   echo "WARNUNG: twitch-credits Verzeichnis nicht gefunden, übersprungen." | tee -a "$LOGDIR/start.log"
 fi
 
-# Prüfe Prozesse (nur warnen, nicht abbrechen)
+# Prüfe Prozesse
 check_pid_alive() {
   local pidfile="$1"; local name="$2"; local logfile="$3"
   if [[ -f "$pidfile" ]]; then
@@ -112,9 +119,10 @@ check_pid_alive() {
   fi
 }
 
-check_pid_alive "$PIDDIR/server.pid"   "server.js"   "$LOGDIR/server.log"   || true
-check_pid_alive "$PIDDIR/eventsub.pid" "eventsub.js" "$LOGDIR/eventsub.log" || true
-check_pid_alive "$PIDDIR/bot.pid"      "bot.js"      "$LOGDIR/bot.log"      || true
+check_pid_alive "$PIDDIR/server.pid"      "server.js"          "$LOGDIR/server.log"      || true
+check_pid_alive "$PIDDIR/eventsub.pid"    "eventsub.js"        "$LOGDIR/eventsub.log"    || true
+check_pid_alive "$PIDDIR/bot.pid"         "bot.js"             "$LOGDIR/bot.log"         || true
+check_pid_alive "$PIDDIR/chatterinfo.pid" "chatterinfo"        "$LOGDIR/chatterinfo.log" || true
 if [[ -n "$CREDITS_PID" ]]; then
   check_pid_alive "$PIDDIR/credits.pid" "credits/index.mjs" "$LOGDIR/credits.log" || true
 fi
@@ -136,12 +144,10 @@ echo "Backend erreichbar." | tee -a "$LOGDIR/start.log"
 if [[ -d "$ELECTRON_DIR" ]]; then
   echo "Starte Electron-App..." | tee -a "$LOGDIR/start.log"
   cd "$ELECTRON_DIR"
-
   npm start > "$LOGDIR/electron.log" 2>&1 &
   ELECTRON_PID=$!
   write_pid "electron" "$ELECTRON_PID"
   echo "Electron läuft (PID $ELECTRON_PID)" | tee -a "$LOGDIR/start.log"
-
   sleep 1
   check_pid_alive "$PIDDIR/electron.pid" "electron" "$LOGDIR/electron.log" || true
 else
