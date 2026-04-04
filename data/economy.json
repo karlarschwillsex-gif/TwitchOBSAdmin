@@ -1,7 +1,7 @@
 {
-  "basePerMessage": 99,
-  "cooldownSeconds": 5,
-  "spamCheckMessages": 3,
+  "basePerMessage": 10,
+  "cooldownSeconds": 2,
+  "spamCheckMessages": 5,
   "factorMod": 1.5,
   "factorVip": 1.5,
   "factorSub": 2,

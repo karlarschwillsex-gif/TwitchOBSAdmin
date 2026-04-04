@@ -1,0 +1,170 @@
+<div style="max-width:1000px; margin:0 auto;">
+
+<div id="countdownStatus" class="msg" style="text-align:center; margin-bottom:10px;"></div>
+
+<!-- MODUS -->
+<div class="econ-section">
+  <div class="econ-title">⏰ Modus</div>
+  <div style="display:flex; gap:16px; flex-wrap:wrap;">
+    <label id="lbl_countdown" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;background:#222;border:2px solid #6441a5;border-radius:8px;">
+      <input type="radio" name="cd_mode" id="cd_mode_countdown" value="countdown" checked style="accent-color:#6441a5;">
+      <span>🕐 Countdown bis Uhrzeit</span>
+    </label>
+    <label id="lbl_timer" style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:10px 16px;background:#222;border:2px solid #444;border-radius:8px;">
+      <input type="radio" name="cd_mode" id="cd_mode_timer" value="timer" style="accent-color:#6441a5;">
+      <span>⏱️ Timer (rückwärts zählen)</span>
+    </label>
+  </div>
+</div>
+
+<!-- ZEIT -->
+<div class="econ-section">
+  <div class="econ-title">Zeiteinstellung</div>
+  <div id="cd_countdown_settings">
+    <div class="econ-row">
+      <label class="econ-label">Ziel-Uhrzeit</label>
+      <input type="time" id="cd_time" class="econ-input" value="20:00" style="width:120px;">
+    </div>
+  </div>
+  <div id="cd_timer_settings" style="display:none;">
+    <div class="econ-row">
+      <label class="econ-label">Minuten</label>
+      <input type="number" id="cd_timerMin" class="econ-input" value="30" min="0" max="999" style="width:80px;">
+    </div>
+    <div class="econ-row">
+      <label class="econ-label">Sekunden</label>
+      <input type="number" id="cd_timerSec" class="econ-input" value="0" min="0" max="59" style="width:80px;">
+    </div>
+  </div>
+</div>
+
+<!-- TEXT EINSTELLUNGEN -->
+<div class="econ-section">
+  <div class="econ-title">📝 Texte & Text-Styling</div>
+  <div class="econ-info" style="margin-bottom:12px;">Textfarbe und Randfarbe gelten für alle Texte. Text oben hat eigene Größe/Randbreite, Mitte und Unten teilen sich die gleichen Werte.</div>
+
+  <div class="econ-grid">
+    <div class="econ-col">
+      <!-- Farben -->
+      <div class="econ-row">
+        <label class="econ-label">Textfarbe (alle)</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="color" id="cd_colorPicker" value="#FFAA00" style="width:40px;height:32px;padding:2px;background:#222;border:1px solid #444;border-radius:4px;cursor:pointer;">
+          <input type="text" id="cd_color" class="econ-input" value="#FFAA00" style="width:90px;">
+        </div>
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Randfarbe (alle)</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="color" id="cd_shadowPicker" value="#800080" style="width:40px;height:32px;padding:2px;background:#222;border:1px solid #444;border-radius:4px;cursor:pointer;">
+          <input type="text" id="cd_shadow" class="econ-input" value="#800080" style="width:90px;">
+        </div>
+      </div>
+    </div>
+    <div class="econ-col">
+      <!-- Text oben -->
+      <div class="econ-row">
+        <label class="econ-label" style="font-weight:bold;">📌 Text oben</label>
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Inhalt</label>
+        <input type="text" id="cd_labelTop" class="econ-input" value="Um 20:00 Uhr geht's los" style="width:100%;max-width:280px;">
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Größe (px)</label>
+        <input type="number" id="cd_sizeTop" class="econ-input" value="70" style="width:80px;">
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Randbreite (px)</label>
+        <input type="number" id="cd_borderTop" class="econ-input" value="3" min="0" max="20" style="width:80px;">
+      </div>
+    </div>
+  </div>
+
+  <div class="econ-grid" style="margin-top:12px;">
+    <div class="econ-col">
+      <!-- Text Mitte -->
+      <div class="econ-row">
+        <label class="econ-label" style="font-weight:bold;">📌 Text Mitte & Unten (gleiche Größe)</label>
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Text Mitte</label>
+        <input type="text" id="cd_labelSub" class="econ-input" value="nur noch" style="width:100%;max-width:280px;">
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Text unten</label>
+        <input type="text" id="cd_labelBottom" class="econ-input" value="bis zum Start" style="width:100%;max-width:280px;">
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Fertig-Text</label>
+        <input type="text" id="cd_doneText" class="econ-input" value="Los geht's! 🎉" style="width:100%;max-width:280px;">
+      </div>
+    </div>
+    <div class="econ-col">
+      <div class="econ-row">
+        <label class="econ-label">Größe Mitte+Unten (px)</label>
+        <input type="number" id="cd_sizeSub" class="econ-input" value="50" style="width:80px;">
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Randbreite Mitte+Unten (px)</label>
+        <input type="number" id="cd_borderSub" class="econ-input" value="2" min="0" max="20" style="width:80px;">
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- COUNTDOWN / TIMER STYLING -->
+<div class="econ-section">
+  <div class="econ-title">⏱️ Countdown/Timer Styling</div>
+  <div class="econ-grid">
+    <div class="econ-col">
+      <div class="econ-row">
+        <label class="econ-label">Schriftgröße Timer (px)</label>
+        <input type="number" id="cd_sizeTimer" class="econ-input" value="80" style="width:80px;">
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Timer Style</label>
+        <select id="cd_timerStyle" class="econ-input" style="width:100%;max-width:220px;">
+          <option value="custom">🎨 Wie Text (Farbe + Rand übernehmen)</option>
+          <option value="fire" selected>🔥 Feuer-Glühen</option>
+          <option value="ice">❄️ Eis-Glühen</option>
+          <option value="glow">✨ Glow (weiß/gold)</option>
+          <option value="purple">💜 Lila Glow</option>
+          <option value="green">💚 Grüner Glow</option>
+        </select>
+      </div>
+      <div class="econ-row">
+        <label class="econ-label">Timer Farbe (nur bei "Wie Text")</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="color" id="cd_timerColorPicker" value="#ffffff" style="width:40px;height:32px;padding:2px;background:#222;border:1px solid #444;border-radius:4px;cursor:pointer;">
+          <input type="text" id="cd_timerColor" class="econ-input" value="#ffffff" style="width:90px;">
+        </div>
+      </div>
+    </div>
+    <div class="econ-col">
+      <div class="econ-row">
+        <label class="econ-label">Dringend ab (Sekunden)</label>
+        <input type="number" id="cd_urgent" class="econ-input" value="30" style="width:80px;">
+      </div>
+      <div class="econ-info" style="margin-top:4px;">Timer blinkt wenn diese Zeit unterschritten wird.</div>
+      <div class="econ-row" style="margin-top:12px;">
+        <label class="econ-label">Dringend-Farbe</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="color" id="cd_urgentColorPicker" value="#ff4444" style="width:40px;height:32px;padding:2px;background:#222;border:1px solid #444;border-radius:4px;cursor:pointer;">
+          <input type="text" id="cd_urgentColor" class="econ-input" value="#ff4444" style="width:90px;">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEICHERN -->
+<div class="econ-section">
+  <div class="econ-save-wrapper">
+    <button class="btn-save" id="cd_saveBtn">💾 Countdown speichern</button>
+    <button class="btn-save" id="cd_loadBtn" style="background:#444;margin-left:8px;">🔄 Laden</button>
+  </div>
+  <div class="econ-info" style="margin-top:8px;">
+    Speichert direkt nach <code>/home/fynn/Dokumente/OBS Text/countdown.html</code>
+  </div>
+</div>

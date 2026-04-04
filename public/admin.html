@@ -5,15 +5,12 @@
   <title>Twitch & OBS Admin-Panel</title>
   <link rel="stylesheet" href="/admin.css">
 </head>
-
 <body>
-
 <div class="admin-header">
   <div class="header-side left"><img src="/logo.png" class="admin-logo"></div>
   <div class="header-center"><h1 class="admin-title">Twitch & OBS Admin-Panel</h1></div>
   <div class="header-side right"><img src="/logo.png" class="admin-logo"></div>
 </div>
-
 <div id="panel">
   <div class="tab-nav">
     <button class="tab-btn active" data-tab="economy">Economy</button>
@@ -23,8 +20,8 @@
     <button class="tab-btn" data-tab="duel">Duelle</button>
     <button class="tab-btn" data-tab="credits-editor">Credits</button>
     <button class="tab-btn" data-tab="security">F$-Bank</button>
+    <button class="tab-btn" data-tab="countdown">⏰ Countdown</button>
   </div>
-
   <div id="economy"        class="tab" style="display:block"></div>
   <div id="sound"          class="tab" style="display:none"></div>
   <div id="overlay-admin"  class="tab" style="display:none"></div>
@@ -32,21 +29,19 @@
   <div id="duel"           class="tab" style="display:none"></div>
   <div id="credits-editor" class="tab" style="display:none"></div>
   <div id="security"       class="tab" style="display:none"></div>
+  <div id="countdown"      class="tab" style="display:none"></div>
 </div>
-
 <script src="/security.js"></script>
 <script src="/admin.js"></script>
-
 <script>
   window.addEventListener("load", function() { openTab('economy'); });
 </script>
-
 <script src="/economy.js"></script>
 <script src="/sound.js"></script>
 <script src="/overlay-admin.js"></script>
 <script src="/befehle.js"></script>
 <script src="/duel.js"></script>
 <script src="/credits-admin.js"></script>
-
+<script src="/countdown.js"></script>
 </body>
 </html>

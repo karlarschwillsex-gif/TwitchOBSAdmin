@@ -15,7 +15,9 @@ function initEconomy() {
         bitFactor5:        document.getElementById("bitFactor5")
     };
 
-    const statsBox = document.getElementById("economyStats");
+    const statsBox     = document.getElementById("economyStats");
+    const sessionInfo  = document.getElementById("sessionInfo");
+    const sessionStatus = document.getElementById("sessionStatus");
 
     async function loadEconomy() {
         try {
@@ -63,6 +65,67 @@ function initEconomy() {
         `;
     }
 
+    // ── Session Info laden ──
+    async function loadSessionInfo() {
+        try {
+            const res  = await fetch('/eventsub/session');
+            const data = await res.json();
+
+            if (!data.startTime) {
+                sessionInfo.innerHTML = '⚫ Keine aktive Session — noch kein Stream gestartet.';
+                return;
+            }
+
+            const start    = new Date(data.startTime);
+            const now      = new Date();
+            const diffMin  = Math.floor((now - start) / 1000 / 60);
+            const h        = Math.floor(diffMin / 60);
+            const m        = diffMin % 60;
+            const laufzeit = h > 0 ? `${h}h ${m}min` : `${m} Minuten`;
+
+            const viewers  = (data.viewers  || []).length;
+            const newSubs  = (data.newSubs  || []).length;
+            const resubs   = (data.resubs   || []).length;
+            const chatters = Object.keys(data.chatCount || {}).length;
+            const bits     = Object.values(data.bitDonors || {}).reduce((s, v) => s + v, 0);
+            const gifts    = Object.values(data.giftSubs || {}).reduce((s, v) => s + v, 0);
+
+            sessionInfo.innerHTML = `
+                🟢 <strong>Stream läuft seit ${laufzeit}</strong> (ab ${start.toLocaleTimeString('de-DE', {hour:'2-digit', minute:'2-digit'})} Uhr)<br>
+                👥 Zuschauer: <strong>${viewers}</strong> &nbsp;|&nbsp;
+                💬 Aktive Chatter: <strong>${chatters}</strong> &nbsp;|&nbsp;
+                ⭐ Neue Subs: <strong>${newSubs}</strong> &nbsp;|&nbsp;
+                🔄 Resubs: <strong>${resubs}</strong><br>
+                🎁 Gift-Subs: <strong>${gifts}</strong> &nbsp;|&nbsp;
+                🎯 Bits heute: <strong>${bits}</strong>
+            `;
+        } catch {
+            sessionInfo.innerHTML = '<span style="color:#888;">Session-Info nicht verfügbar.</span>';
+        }
+    }
+
+    // ── Session Reset ──
+    document.getElementById("resetSessionBtn").addEventListener("click", async () => {
+        if (!confirm('Session wirklich zurücksetzen? Alle heutigen Stream-Daten werden gelöscht!')) return;
+        try {
+            const res    = await fetch('/eventsub/session/reset', { method: 'POST' });
+            const result = await res.json();
+            if (result.ok) {
+                sessionStatus.textContent = '✅ Session zurückgesetzt!';
+                sessionStatus.style.color = '#9f9';
+                loadSessionInfo();
+                setTimeout(() => { sessionStatus.textContent = ''; }, 4000);
+            } else {
+                sessionStatus.textContent = '❌ Fehler beim Zurücksetzen!';
+                sessionStatus.style.color = '#f66';
+            }
+        } catch {
+            sessionStatus.textContent = '❌ Verbindungsfehler!';
+            sessionStatus.style.color = '#f66';
+        }
+    });
+
+    // ── Speichern ──
     document.getElementById("saveEconomyBtn").addEventListener("click", async () => {
         const payload = {
             basePerMessage:    Number(fields.basePerMessage.value),
@@ -96,4 +159,6 @@ function initEconomy() {
     });
 
     loadEconomy();
+    loadSessionInfo();
+    setInterval(loadSessionInfo, 30000);
 }
