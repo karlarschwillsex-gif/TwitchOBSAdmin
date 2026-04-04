@@ -1,0 +1,63 @@
+<div style="max-width:1000px; margin:0 auto;">
+
+<div id="bankStatus" class="msg" style="text-align:center; margin-bottom:10px;"></div>
+
+<!-- ── BITS → F$ ── -->
+<div class="econ-section">
+  <div class="econ-title">Bits → F$ Kurs</div>
+  <div class="econ-info">
+    Feste Bit-Stufen — passe den Kurs an. F$ werden automatisch berechnet.
+    <strong>Beispiel:</strong> 100 Bits × 1.5 = 150 F$
+  </div>
+
+  <table style="width:100%;border-collapse:collapse;margin-top:12px;font-size:0.9em;">
+    <thead>
+      <tr style="border-bottom:1px solid #444;">
+        <th style="padding:8px;text-align:left;">Bits Stufe</th>
+        <th style="padding:8px;text-align:left;">Kurs (×)</th>
+        <th style="padding:8px;text-align:left;">Beispiel</th>
+        <th style="padding:8px;text-align:left;">✓</th>
+      </tr>
+    </thead>
+    <tbody id="bitsTable"></tbody>
+  </table>
+
+  <div class="econ-save-wrapper">
+    <button class="btn-save" id="saveBitsBtn">💾 Bits-Kurse speichern</button>
+  </div>
+</div>
+
+<!-- ── SUBS → F$ ── -->
+<div class="econ-section">
+  <div class="econ-title">SUB → F$ Belohnungen</div>
+  <div class="econ-info">
+    Belohnungen für Subscriptions. Resub = Tier-Betrag + Resub-Bonus. Geschenk-SUB nur für den Schenker.
+  </div>
+
+  <table style="width:100%;border-collapse:collapse;margin-top:12px;font-size:0.9em;">
+    <thead>
+      <tr style="border-bottom:1px solid #444;">
+        <th style="padding:8px;text-align:left;">SUB Typ</th>
+        <th style="padding:8px;text-align:left;">F$</th>
+        <th style="padding:8px;text-align:left;">Ergebnis</th>
+        <th style="padding:8px;text-align:left;">✓</th>
+      </tr>
+    </thead>
+    <tbody id="subsTable"></tbody>
+  </table>
+
+  <div class="econ-save-wrapper">
+    <button class="btn-save" id="saveSubsBtn">💾 SUB-Belohnungen speichern</button>
+  </div>
+</div>
+
+<!-- ── INFO ── -->
+<div class="econ-section">
+  <div class="econ-title">Wie es funktioniert</div>
+  <div class="econ-info" style="line-height:1.9;">
+    🎯 <strong>Bits:</strong> Wenn jemand Bits spendet, wird die passende Stufe gefunden und der Kurs angewendet.<br>
+    ⭐ <strong>SUB Tier 1/2/3:</strong> Erstsub bekommt den Tier-Betrag. Resub bekommt Tier + Resub-Bonus.<br>
+    🎁 <strong>Geschenk-SUB:</strong> Nur der Schenker bekommt F$ — pro verschenktem SUB. Der Empfänger bekommt nichts.<br>
+    🤖 <strong>BottyFoxy</strong> vergibt die F$ automatisch bei jedem Event.
+  </div>
+</div>

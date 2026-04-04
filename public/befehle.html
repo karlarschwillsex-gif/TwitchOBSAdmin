@@ -1,0 +1,252 @@
+<div style="max-width: 1000px; margin: 0 auto;">
+
+  <div id="cmdStatus" class="msg" style="text-align:center; margin-bottom:10px;"></div>
+
+  <!-- ── Neuen Befehl anlegen ── -->
+  <div class="econ-section">
+    <div class="econ-title">Neuen +Befehl anlegen</div>
+    <div class="econ-info">
+      Befehle starten immer mit <code>+</code> — du gibst nur den Namen ohne + ein.
+      Variablen wie <code>[user]</code> werden beim Ausführen ersetzt.
+    </div>
+
+    <div class="econ-grid">
+      <div class="econ-col">
+
+        <div class="econ-row">
+          <label class="econ-label" for="cmdName">Befehlsname</label>
+          <input type="text" id="cmdName" class="econ-input"
+                 placeholder="z.B. hug" style="width:220px;">
+        </div>
+        <div class="econ-info">Zuschauer tippt dann: <code>+hug</code></div>
+
+        <div class="econ-row">
+          <label class="econ-label" for="cmdResponse">Antworttext</label>
+          <textarea id="cmdResponse" class="econ-input"
+                    placeholder="z.B. [user] umarmt [empfaenger] ❤️"
+                    style="width:220px; height:80px; resize:vertical;"></textarea>
+        </div>
+
+        <div class="econ-row">
+          <label class="econ-label" for="cmdAliases">Aliases (optional)</label>
+          <input type="text" id="cmdAliases" class="econ-input"
+                 placeholder="z.B. knuddel,cuddle" style="width:220px;">
+        </div>
+        <div class="econ-info">Kommagetrennt — mehrere Namen für denselben Befehl.</div>
+
+      </div>
+
+      <div class="econ-col">
+
+        <div class="econ-row">
+          <label class="econ-label" for="cmdFD">F$ Belohnung</label>
+          <input type="number" id="cmdFD" class="econ-input"
+                 min="0" value="0" style="width:220px;">
+        </div>
+        <div class="econ-info">User bekommt diese F$ wenn er den Befehl nutzt. 0 = keine Belohnung.</div>
+
+        <div class="econ-row">
+          <label class="econ-label" for="cmdCooldown">Cooldown (Sek.)</label>
+          <input type="number" id="cmdCooldown" class="econ-input"
+                 min="0" value="0" style="width:220px;">
+        </div>
+        <div class="econ-info">Wie lange der User warten muss bis er den Befehl wieder nutzen kann.</div>
+
+        <div class="econ-row" style="align-items:flex-start;">
+          <label class="econ-label">Erlaubte Rollen</label>
+          <div id="newCmdRoles" style="display:flex; flex-wrap:wrap; gap:12px; padding-top:4px;">
+            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" value="admin" class="roleCheck"> Admin
+            </label>
+            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" value="mod" class="roleCheck"> MOD
+            </label>
+            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" value="vip" class="roleCheck"> VIP
+            </label>
+            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" value="sub" class="roleCheck"> SUB
+            </label>
+            <label style="display:flex; align-items:center; gap:4px; cursor:pointer;">
+              <input type="checkbox" value="everyone" class="roleCheck" id="newRoleAll"> Alle
+            </label>
+          </div>
+        </div>
+        <div class="econ-info">Bei "Alle" darf jeder den Befehl nutzen.</div>
+
+      </div>
+    </div>
+
+    <div class="econ-save-wrapper">
+      <button class="btn-save" id="addCmdBtn">Befehl speichern</button>
+    </div>
+  </div>
+
+  <!-- ── Gespeicherte Befehle ── -->
+  <div class="econ-section">
+    <div class="econ-title">Gespeicherte +Befehle</div>
+
+    <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:0.9em;">
+      <thead>
+        <tr style="border-bottom:1px solid #444;">
+          <th style="padding:8px; text-align:left;">Befehl</th>
+          <th style="padding:8px; text-align:left;">Antwort</th>
+          <th style="padding:8px; text-align:left;">F$</th>
+          <th style="padding:8px; text-align:left;">Cooldown</th>
+          <th style="padding:8px; text-align:left;">Rollen</th>
+          <th style="padding:8px; text-align:left;">Aktion</th>
+        </tr>
+      </thead>
+      <tbody id="cmdTable">
+        <tr><td colspan="6" style="padding:12px; color:#888; text-align:center;">Wird geladen…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Variablen-Verzeichnis ── -->
+  <div class="econ-section">
+    <div class="econ-title">Variablen-Verzeichnis</div>
+    <div class="econ-info">
+      Diese Variablen kannst du im Antworttext verwenden — sie werden beim Ausführen automatisch ersetzt.
+    </div>
+
+    <table style="width:100%; border-collapse:collapse; margin-top:10px; font-size:0.85em;">
+      <thead>
+        <tr style="border-bottom:1px solid #444;">
+          <th style="padding:8px; text-align:left; width:210px;">Variable</th>
+          <th style="padding:8px; text-align:left;">Beschreibung</th>
+          <th style="padding:8px; text-align:left;">Beispiel</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- Benutzer -->
+        <tr style="background:#1a1a2e;">
+          <td colspan="3" style="padding:6px 8px; color:#9f9; font-size:0.8em; letter-spacing:1px;">BENUTZER</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[user]</code></td>
+          <td style="padding:8px;">Name des Users der den Befehl schreibt</td>
+          <td style="padding:8px; opacity:0.7;">FaireWelt</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[user.role]</code></td>
+          <td style="padding:8px;">Rolle des Users (Admin / MOD / VIP / SUB / Chatter)</td>
+          <td style="padding:8px; opacity:0.7;">MOD</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[user.vip]</code></td>
+          <td style="padding:8px;">Gibt "VIP" aus wenn der User VIP ist, sonst leer</td>
+          <td style="padding:8px; opacity:0.7;">VIP</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[user.followage]</code></td>
+          <td style="padding:8px;">Seit wann der User dem Kanal folgt</td>
+          <td style="padding:8px; opacity:0.7;">seit März 2022</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[user.sub.since]</code></td>
+          <td style="padding:8px;">Seit wann der User subscribed ist</td>
+          <td style="padding:8px; opacity:0.7;">seit Januar 2023</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[user.sub.months]</code></td>
+          <td style="padding:8px;">Wie viele Monate der User schon subscribed ist</td>
+          <td style="padding:8px; opacity:0.7;">14</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[user.bits.total]</code></td>
+          <td style="padding:8px;">Gesamte Bits die der User je gespendet hat</td>
+          <td style="padding:8px; opacity:0.7;">2500</td>
+        </tr>
+
+        <!-- Empfänger -->
+        <tr style="background:#1a1a2e;">
+          <td colspan="3" style="padding:6px 8px; color:#9f9; font-size:0.8em; letter-spacing:1px;">EMPFÄNGER</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[empfaenger]</code></td>
+          <td style="padding:8px;">Erster Parameter nach dem Befehl</td>
+          <td style="padding:8px; opacity:0.7;"><code>+hug @BottyFoxy</code> → BottyFoxy</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[empfaenger.role]</code></td>
+          <td style="padding:8px;">Rolle des Empfängers</td>
+          <td style="padding:8px; opacity:0.7;">VIP</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[empfaenger.fd]</code></td>
+          <td style="padding:8px;">F$ Guthaben des Empfängers</td>
+          <td style="padding:8px; opacity:0.7;">420 F$</td>
+        </tr>
+
+        <!-- F$ Economy -->
+        <tr style="background:#1a1a2e;">
+          <td colspan="3" style="padding:6px 8px; color:#9f9; font-size:0.8em; letter-spacing:1px;">F$ ECONOMY</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[fd]</code></td>
+          <td style="padding:8px;">Aktuelles F$ Guthaben des Users</td>
+          <td style="padding:8px; opacity:0.7;">1337 F$</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[top]</code></td>
+          <td style="padding:8px;">Top 1 User nach F$ Guthaben</td>
+          <td style="padding:8px; opacity:0.7;">FaireWelt (5000 F$)</td>
+        </tr>
+
+        <!-- Stream -->
+        <tr style="background:#1a1a2e;">
+          <td colspan="3" style="padding:6px 8px; color:#9f9; font-size:0.8em; letter-spacing:1px;">STREAM</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[viewers]</code></td>
+          <td style="padding:8px;">Aktuelle Zuschauerzahl</td>
+          <td style="padding:8px; opacity:0.7;">42</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[game]</code></td>
+          <td style="padding:8px;">Aktuell gestreamtes Spiel / Kategorie</td>
+          <td style="padding:8px; opacity:0.7;">Minecraft</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[title]</code></td>
+          <td style="padding:8px;">Aktueller Stream-Titel</td>
+          <td style="padding:8px; opacity:0.7;">Heute wird gezockt! 🦊</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[channel]</code></td>
+          <td style="padding:8px;">Name des Twitch-Kanals</td>
+          <td style="padding:8px; opacity:0.7;">fairewelt</td>
+        </tr>
+
+        <!-- Sonstiges -->
+        <tr style="background:#1a1a2e;">
+          <td colspan="3" style="padding:6px 8px; color:#9f9; font-size:0.8em; letter-spacing:1px;">SONSTIGES</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[count]</code></td>
+          <td style="padding:8px;">Wie oft dieser Befehl schon genutzt wurde</td>
+          <td style="padding:8px; opacity:0.7;">42</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[random: a|b|c]</code></td>
+          <td style="padding:8px;">Zufällig einen der Werte auswählen</td>
+          <td style="padding:8px; opacity:0.7;"><code>[random: 🦊|🐺|🐱]</code> → 🦊</td>
+        </tr>
+        <tr style="border-bottom:1px solid #333;">
+          <td style="padding:8px;"><code>[link: url name]</code></td>
+          <td style="padding:8px;">Link mit angezeigtem Namen im Chat</td>
+          <td style="padding:8px; opacity:0.7;"><code>[link: twitch.tv/fairewelt Kanal]</code></td>
+        </tr>
+        <tr>
+          <td style="padding:8px;"><code>[emote: name]</code></td>
+          <td style="padding:8px;">Twitch Emote einfügen</td>
+          <td style="padding:8px; opacity:0.7;"><code>[emote: fairew1Wink]</code></td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+</div>
